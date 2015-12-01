@@ -5,8 +5,15 @@
 #ifndef CPU_H
 #define CPU_H
 
+
+int add(Calculator *calc);
+int subtract(Calculator *calc);
+int multiply(Calculator *calc);
+int divide(Calculator *calc);
+
+
 Class CPU{
-	private:
+	public:
 		uint16 pc; // program counter
 		uint8 sp;  // stack pointer
 		uint8 A;   // accumulator
@@ -14,17 +21,18 @@ Class CPU{
 		uint8 Y;  // index register Y
 		uint8 P;  // Processor status
 		Memory *memoryPointer;
+		uint16 opcode;
 
-		static int (*jumpTable[256])();
+		int executeOpcode();
+		uint16 fetchOpcode();
+
+
+	//public:
+		CPU(Memory *memP);
+		void emulateCycle();
 		static int opcodeCycles[256];
 		static int opcodeSize[256];
 		static int opcodeMode[256];
-
-	public:
-		CPU(Memory *memP);
-		void emulateCycle();
-
-
 
 }
 
