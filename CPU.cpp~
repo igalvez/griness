@@ -30,30 +30,74 @@ enum Modes{
 
 int adcF(CPU *cpuObj){
 // Add Memory to Accumulator with Carry
+	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+		if((cpuObj->A + cpuObj->operand + cpuObj->carry)>0xFF){
+			cpuObj->A += cpuObj->operand + cpuObj->carry;
+		}
+	else{
+		if((cpuObj->A + cpuObj->memory[operand] + cpuObj->carry)>0xFF){
+			cpuObj->A += cpuObj->memory[operand] + cpuObj->carry;
+		}
+
+	}
 }
 
 int andF(CPU *cpuObj){
 //  "AND" M with A
+	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+		cpuObj->A &= cpuObj->operand;			
+	}
+	else{
+		cpuObj->A &= cpuObj->memory[cpuObj->operand];
+	}
 }
 
 int aslF(CPU *cpuObj){
 // Shift Left One Bit (M or A)
+	if(CPU.opcodeCycles[cpuObj->opcode] == accumulator){
+		cpuObj->carry = cpuObj->A >> 7;
+		cpuObj->A = cpuObj->A << 1;
+	}
+	else{
+		cpuObj->carry = cpuObj->memory[cpuObj->operand] >> 7;
+		cpuObj->memory[cpuObj->operand] = cpuObj->memory[cpuObj->operand] << 1;
+	}
 }
 
 int bccF(CPU *cpuObj){
 // Branch on Carry Clear
+	int operand = cpuObj->operand;
+	if(cpuObj->carry==0){
+		cpuObj->pc += operand;
+	}
 }
 
 int bcsF(CPU *cpuObj){
 // Branch on Carry Set
+	int operand = cpuObj->operand;
+	if(cpuObj->carry==1){
+		cpuObj->pc += operand;
+	}
 }
 
 int beqF(CPU *cpuObj){
 // Branch on Result Zero
+	int operand = cpuObj->operand;
+	if(cpuObj->Z==1){
+		cpuObj->pc += operand;
+	}
 }
 
 int bitF(CPU *cpuObj){
 // Test Bits in M with A
+	int operand = cpuObj->operand;
+	if((cpuObj->A & cpuObj->memory[operand]) == 0){
+		cpuObj->Z = 1;
+	}
+	else{
+		cpuObj->N = cpuObj->memory[operand] >> 7;
+		cpuOnj->V = (cpuObj->memory[operand] & 0x40) >> 6;
+	}
 }
 
 int bmiF(CPU *cpuObj){
@@ -98,14 +142,32 @@ int clvF(CPU *cpuObj){
 
 int cmpF(CPU *cpuObj){
 // Compare M and A
+	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+			
+	}
+	else{
+
+	}
 }
 
 int cpxF(CPU *cpuObj){
 // Compare M and X
+	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+			
+	}
+	else{
+
+	}
 }
 
 int cpyF(CPU *cpuObj){
 // Compare M and Y
+	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+			
+	}
+	else{
+
+	}
 }
 
 int decF(CPU *cpuObj){
@@ -122,6 +184,12 @@ int deyF(CPU *cpuObj){
 
 int eorF(CPU *cpuObj){
 // "Exclusive-Or" M with A
+	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+			
+	}
+	else{
+
+	}
 }
 
 int incF(CPU *cpuObj){
@@ -146,19 +214,42 @@ int jsrF(CPU *cpuObj){
 
 int ldaF(CPU *cpuObj){
 // Load A with M
+	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+			
+	}
+	else{
+
+	}
 
 }
 
 int ldxF(CPU *cpuObj){
 // Load X with M
+	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+
+	else{
+
+	}
 }
 
 int ldyF(CPU *cpuObj){
 // Load Y with M
+	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+			
+	}
+	else{
+
+	}
 }
 
 int lsrF(CPU *cpuObj){
 // Shift Right One Bit (M or A)
+	if(CPU.opcodeCycles[cpuObj->opcode] == accumulator){
+			
+	}
+	else{
+
+	}
 }
 
 int nopF(CPU *cpuObj){
@@ -168,6 +259,12 @@ int nopF(CPU *cpuObj){
 
 int oraF(CPU *cpuObj){
 // "OR" M with A
+	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+			
+	}
+	else{
+
+	}
 }
 
 
@@ -189,10 +286,22 @@ int plpF(CPU *cpuObj){
 
 int rolF(CPU *cpuObj){
 // Rotate One Bit Left (M or A)
+	if(CPU.opcodeCycles[cpuObj->opcode] == accumulator){
+			
+	}
+	else{
+
+	}
 }
 
 int rorF(CPU *cpuObj){
 // Rotate One Bit Right (M or A)
+	if(CPU.opcodeCycles[cpuObj->opcode] == accumulator){
+			
+	}
+	else{
+
+	}
 }
 
 int rtiF(CPU *cpuObj){
@@ -205,6 +314,12 @@ int rtsF(CPU *cpuObj){
 
 int sbcF(CPU *cpuObj){
 // Subtract M from A with Borrow
+	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+			
+	}
+	else{
+
+	}
 }
 
 int secF(CPU *cpuObj){
@@ -441,4 +556,5 @@ uint16 CPU::fetchOpcode(){
 			jumpTable[opcode](self);
 			pc+=3;
 		}
+	}
 }

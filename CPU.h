@@ -1,15 +1,8 @@
 
-#include "utils.h"
-
 
 #ifndef CPU_H
 #define CPU_H
 
-
-int add(Calculator *calc);
-int subtract(Calculator *calc);
-int multiply(Calculator *calc);
-int divide(Calculator *calc);
 
 
 Class CPU{
@@ -31,7 +24,7 @@ Class CPU{
 
 		Memory *memoryPointer;
 		uint16 opcode;
-
+		int operand; // Help variable to store operands used by instruction
 		int executeOpcode();
 		uint16 fetchOpcode();
 
