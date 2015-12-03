@@ -30,7 +30,7 @@ enum Modes{
 
 int adcF(CPU *cpuObj){
 // Add Memory to Accumulator with Carry
-	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+	if(CPU.opcodeMode[cpuObj->opcode] == immediate){
 		if((cpuObj->A + cpuObj->operand + cpuObj->carry)>0xFF){
 			cpuObj->A += cpuObj->operand + cpuObj->carry;
 		}
@@ -44,7 +44,7 @@ int adcF(CPU *cpuObj){
 
 int andF(CPU *cpuObj){
 //  "AND" M with A
-	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+	if(CPU.opcodeMode[cpuObj->opcode] == immediate){
 		cpuObj->A &= cpuObj->operand;			
 	}
 	else{
@@ -54,7 +54,7 @@ int andF(CPU *cpuObj){
 
 int aslF(CPU *cpuObj){
 // Shift Left One Bit (M or A)
-	if(CPU.opcodeCycles[cpuObj->opcode] == accumulator){
+	if(CPU.opcodeMode[cpuObj->opcode] == accumulator){
 		cpuObj->carry = cpuObj->A >> 7;
 		cpuObj->A = cpuObj->A << 1;
 	}
@@ -102,153 +102,171 @@ int bitF(CPU *cpuObj){
 
 int bmiF(CPU *cpuObj){
 // Branch on Result Minus
+	if(cpuObj->N==1){
+		cpuObj->pc += cpuObj->operand;
+	}
 }
 
 int bneF(CPU *cpuObj){
 // Branch on Result not Zero
+	if(cpuObj->Z==0){
+		cpuObj->pc += cpuObj->operand;
+	}
 }
 
 int bplF(CPU *cpuObj){
 // Branch on Result Plus
+	if(cpuObj->N==0){
+		cpuObj->pc += cpuObj->operand;
+	}
 }
 
 int brkF(CPU *cpuObj){
 // Force Break
+	TODO
 }
 
 int bvcF(CPU *cpuObj){
 // Branch on Overflow Clear
+	if(cpuObj->V==0){
+		cpuObj->pc += cpuObj->operand;
+	}
 }
 
 int bvsF(CPU *cpuObj){
 // Branch on Overflow Set
+	if(cpuObj->V==1){
+		cpuObj->pc += cpuObj->operand;
+	}
 }
 
 int clcF(CPU *cpuObj){
 // Clear Carry Flag
+	cpuObj->C = 0;
 }
 
 int cldF(CPU *cpuObj){
 // Clear Decimal Mode
+	cpuObj->D = 0;
 }
 
 int cliF(CPU *cpuObj){
 // Clear interrupt Disable Bit
+	cpuObj->I = 0;
 }
 
 int clvF(CPU *cpuObj){
 // Clear Overflow Flag
+	cpuObj->V = 0;
 }
 
 int cmpF(CPU *cpuObj){
-// Compare M and A
-	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
-			
-	}
-	else{
-
-	}
+// Compare M and A : A - M 
+	cpuObj->compareElements(cpuObj->A);
 }
 
 int cpxF(CPU *cpuObj){
 // Compare M and X
-	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
-			
-	}
-	else{
-
-	}
+	cpuObj->compareElements(cpuObj->X);
 }
 
 int cpyF(CPU *cpuObj){
 // Compare M and Y
-	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
-			
-	}
-	else{
-
-	}
+	cpuObj->compareElements(cpuObj->Y);
 }
 
 int decF(CPU *cpuObj){
 // Decrement M by One
+	cpuObj->memory[operand] -= 1;
 }
 
 int dexF(CPU *cpuObj){
 // Decrement X by One
+	cpuObj->X -= 1;
 }
 
 int deyF(CPU *cpuObj){
 //  Decrement Y by One
+	cpuObj->Y -= 1;
 }
 
 int eorF(CPU *cpuObj){
 // "Exclusive-Or" M with A
-	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
-			
+	int number;
+	if(CPU.opcodeMode[cpuObj->opcode] == immediate){
+		number = cpuObj->operand;
 	}
 	else{
-
+		number = cpuObj->memory[cpuObj->operand];
 	}
+
+	cpuObj->A ^= number;
 }
 
 int incF(CPU *cpuObj){
 // Increment M by One
+	cpuObj->memory[operand] += 1;
 }
 
 int inxF(CPU *cpuObj){
 // Increment X by One
+	cpuObj->X += 1;
 }
 
 int inyF(CPU *cpuObj){
 // Increment Y by One
+	cpuObj->Y += 1;
 }
 
 int jmpF(CPU *cpuObj){
 //  Jump to Location
+	cpuObj->pc = cpuObj.memory[operand];
 }
 
 int jsrF(CPU *cpuObj){
 // Jump to Location Save Return Address
+	TODO
 }
 
 int ldaF(CPU *cpuObj){
 // Load A with M
-	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
-			
+	if(CPU.opcodeMode[cpuObj->opcode] == immediate){
+		cpuObj->A = cpuObj->operand;
 	}
 	else{
-
+		cpuObj->A = cpuObj->memory[cpuObj->operand];
 	}
 
 }
 
 int ldxF(CPU *cpuObj){
 // Load X with M
-	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
-
+	if(CPU.opcodeMode[cpuObj->opcode] == immediate){
+		cpuObj->X = cpuObj->operand;
 	else{
-
+		cpuObj->X = cpuObj->memory[cpuObj->operand];
 	}
 }
 
 int ldyF(CPU *cpuObj){
 // Load Y with M
-	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
-			
+	if(CPU.opcodeMode[cpuObj->opcode] == immediate){
+		cpuObj->Y = cpuObj->operand;		
 	}
 	else{
-
+		cpuObj->Y = cpuObj->memory[cpuObj->operand];
 	}
 }
 
 int lsrF(CPU *cpuObj){
 // Shift Right One Bit (M or A)
-	if(CPU.opcodeCycles[cpuObj->opcode] == accumulator){
-			
+	if(CPU.opcodeMode[cpuObj->opcode] == accumulator){
+		cpuObj->C = (cpuObj->A & 0x01);
+		cpuObj->A = cpuObj->A >> 1;
 	}
 	else{
-
+		cpuObj->C = (cpuObj->memory[cpuObj->operand] & 0x01);
+		cpuObj->memory[cpuObj->operand] = cpuObj->memory[cpuObj->operand] >> 1;
 	}
 }
 
@@ -259,17 +277,19 @@ int nopF(CPU *cpuObj){
 
 int oraF(CPU *cpuObj){
 // "OR" M with A
-	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
-			
+	if(CPU.opcodeMode[cpuObj->opcode] == immediate){
+		cpuObj->A |= cpuObj->operand;
 	}
 	else{
-
+		cpuObj->A |= cpuObj->memory[cpuObj->operand];
 	}
 }
 
 
 int phaF(CPU *cpuObj){
 //Push A on Stack
+	cpuObj->memory[cpuObj->sp--] = cpuObj->A;
+	//--cpuObj->sp;
 }
 
 int phpF(CPU *cpuObj){
@@ -286,7 +306,7 @@ int plpF(CPU *cpuObj){
 
 int rolF(CPU *cpuObj){
 // Rotate One Bit Left (M or A)
-	if(CPU.opcodeCycles[cpuObj->opcode] == accumulator){
+	if(CPU.opcodeMode[cpuObj->opcode] == accumulator){
 			
 	}
 	else{
@@ -296,7 +316,7 @@ int rolF(CPU *cpuObj){
 
 int rorF(CPU *cpuObj){
 // Rotate One Bit Right (M or A)
-	if(CPU.opcodeCycles[cpuObj->opcode] == accumulator){
+	if(CPU.opcodeMode[cpuObj->opcode] == accumulator){
 			
 	}
 	else{
@@ -314,7 +334,7 @@ int rtsF(CPU *cpuObj){
 
 int sbcF(CPU *cpuObj){
 // Subtract M from A with Borrow
-	if(CPU.opcodeCycles[cpuObj->opcode] == immediate){
+	if(CPU.opcodeMode[cpuObj->opcode] == immediate){
 			
 	}
 	else{
@@ -386,7 +406,28 @@ int tyaF(CPU *cpuObj){
 
 
 
-
+void CPU::compareElements(uint8 reg){
+	uint8 number;
+	if(opcodeMode[opcode] == immediate){
+		number = operand
+	}
+	else{
+		number = memory[operand];
+	}
+	C = 0;
+	if((reg - number)<0){
+		N = 1;
+		Z = 0;
+	}
+	else if((reg - number) == 0){
+		N = 0;
+		Z = 1;	
+	}
+	else{
+		N = 0;
+		Z = 0;
+	}
+}
 
 
 
@@ -412,9 +453,10 @@ int (*jumpTable[256])(CPU *cpuObj) ={
 
 };
 
-
 static int CPU::opcodeCycles[256] ={
-
+	7, 6, 0, 0, 0, 3, 5, 0, 3, 2, 2, 0, 0, 4, 6, 0, //0
+	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0, //1
+	6, 6, 0, 0, 3, 3, 5, 0, 4, 2, 2, 0, 4, 4, 6, 0, //2
 };
 static int CPU::opcodeSize[256] = {
 

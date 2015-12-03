@@ -28,7 +28,9 @@ int main(void){
 	scanf("%d", &a);
 	printf("Second number for the operation: ");
 	scanf("%d", &b);
-	weeJumpTable[op](a,b);
+	printf("op is %d\n", op);
+	weeJumpTable[op--](a,b);
+	printf("op is now %d", op);
 
 }
 
