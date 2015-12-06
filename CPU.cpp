@@ -294,20 +294,24 @@ int phaF(CPU *cpuObj){
 
 int phpF(CPU *cpuObj){
 // Push Processor Status on Stack
+	cpuObj->memory[cpuObj->sp--] = cpuObj->P;
 }
 
 int plaF(CPU *cpuObj){
 // Pull A from Stack
+	cpuObj->A = cpuObj->memory[cpuObj->sp++];
 }
 
 int plpF(CPU *cpuObj){
 // Pull Processor Status from Stack
+	cpuObj->P = cpuObjs->memory[cpuObj->sp++];
 }
 
 int rolF(CPU *cpuObj){
 // Rotate One Bit Left (M or A)
+	TODO
 	if(CPU.opcodeMode[cpuObj->opcode] == accumulator){
-			
+				
 	}
 	else{
 
@@ -316,84 +320,94 @@ int rolF(CPU *cpuObj){
 
 int rorF(CPU *cpuObj){
 // Rotate One Bit Right (M or A)
+	int aux;
 	if(CPU.opcodeMode[cpuObj->opcode] == accumulator){
-			
+		aux = (cpuObj->A & 0x01);
+		cpuObj->A = cpuObj->A >> 1;
+		cpuObj->A |= (cpuObj->C << 7);
 	}
 	else{
-
+		aux = (cpuObj->memory[operand] & 0x01);
+		cpuObj->memory[operand] = cpuObj->memory[operand] >> 1;
+		cpuObj->memory[operand] |= (cpuObj->C << 7);
 	}
+	cpuObj->C = aux;
 }
-
 int rtiF(CPU *cpuObj){
 // Return from Interrupt
+	TODO
 }
 
 int rtsF(CPU *cpuObj){
 // Return from Subroutine
+	cpuObj->pc = cpuObj->memory[cpuObj->sp++];
 }
 
 int sbcF(CPU *cpuObj){
 // Subtract M from A with Borrow
+	int number;
 	if(CPU.opcodeMode[cpuObj->opcode] == immediate){
-			
+		number = cpuObj->operand;
 	}
 	else{
-
+		number = cpuObj->memory[operand];
 	}
+	cpuObj->A -= (number + cpuObj->C);
 }
 
 int secF(CPU *cpuObj){
 // Set Carry Flag
+	cpuObj->C = 1;
 }
 
 int sedF(CPU *cpuObj){
 // Set Decimal Mode
+	cpuObj->D = 1;
 }
 
 int seiF(CPU *cpuObj){
 // Set Interrupt Disable Status
+	cpuObj->I = 1;
 }
 
 int staF(CPU *cpuObj){
 // Store A in M
+	cpuObj->memory[operand] = cpuObj->A;
 }
 
 int stxF(CPU *cpuObj){
 // Store X in M
+	cpuObj->memory[operand] = cpuObj->X;
 }
 
 int styF(CPU *cpuObj){
 // Store Y in M
+	cpuObj->memory[operand] = cpuObj->Y;
 }
 
 int taxF(CPU *cpuObj){
 // Transfer A to X
 	cpuObj->X = cpuObj->A;
-	cpuObjs->pc++;
 }
 
 int tayF(CPU *cpuObj){
 // Transfer A to Y
 	cpuObj->Y = cpuObj->A;
-	cpuObjs->pc++;
 }
 
 int tsxF(CPU *cpuObj){
 // Transfer Stack Pointer to X
 	cpuObj->X = cpuObj->sp;
-	cpuObjs->pc++;
 }
 
 int txaF(CPU *cpuObj){
 // Transfer X to A
 	cpuObj->A = cpuObj->X;
-	cpuObjs->pc++;
 }
 
 int txsF(CPU *cpuObj){
 //Transfer X to Stack Pointer
 	cpuObj->sp = cpuObj->X;
-	cpuObjs->pc++;
 }
 
 int tyaF(CPU *cpuObj){
