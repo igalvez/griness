@@ -1,4 +1,5 @@
-
+#include "types.h"
+#include "Memory.h"
 
 #ifndef CPU_H
 #define CPU_H
@@ -22,7 +23,7 @@ Class CPU{
 		uint8 D;
 		uint8 V;
 
-		Memory *memoryPointer;
+		Memory *memory;
 		uint16 opcode;
 		int operand; // Help variable to store operands used by instruction
 		int executeOpcode();
