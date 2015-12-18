@@ -10,7 +10,7 @@ class Memory{
 		uint8 *map[0xFFFF];
 
 		Memory();
-		int loadGame(string gameName);
+		bool loadGame(string gameName);
 
 }
 
