@@ -2,7 +2,8 @@
 #define TYPES_H
 
 #define MAX_GAME_SIZE 
-#define GAME_MEM_REGION 
+#define GAME_MEM_REGION
+#define ROM_LIMIT 
 
 typedef char uint8;
 typedef short uint16;

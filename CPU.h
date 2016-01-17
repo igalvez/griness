@@ -36,6 +36,10 @@ Class CPU{
 		static int opcodeCycles[256];
 		static int opcodeSize[256];
 		static int opcodeMode[256];
+		
+		void compareElements(uint8 reg)
+		void store_value(int addr, uint8 value);
+		uint8 get_value(int addr);
 
 }
 

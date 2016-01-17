@@ -39,8 +39,8 @@ void adcF(CPU *cpuObj){
 			cpuObj->A += cpuObj->operand + cpuObj->C;
 		}
 	else{
-		if((cpuObj->A + cpuObj->memory->map[cpuObj->operand] + cpuObj->C)>0xFF){
-			cpuObj->A += cpuObj->memory->map[cpuObj->operand] + cpuObj->C;
+		if((cpuObj->A + cpuObj->memory->read(cpuObj->operand) + cpuObj->C)>0xFF){
+			cpuObj->A += cpuObj->memory->read(cpuObj->operand) + cpuObj->C;
 		}
 
 	}
@@ -52,7 +52,7 @@ void andF(CPU *cpuObj){
 		cpuObj->A &= cpuObj->operand;			
 	}
 	else{
-		cpuObj->A &= cpuObj->memory->map[cpuObj->operand];
+		cpuObj->A &= cpuObj->memory->read(cpuObj->operand);
 	}
 }
 
@@ -473,7 +473,13 @@ void CPU::compareElements(uint8 reg){
 	}
 }
 
+void CPU::store_value(int addr, uint8 value){
+	memory->write(addr,value);
+}
 
+uint8 CPU::get_value(int addr){
+	return memory->read(addr);
+}
 
 
 void (*jumpTable[256])(CPU *cpuObj) ={
