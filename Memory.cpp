@@ -2,35 +2,59 @@
 
 Memory :: Memory(){
 	// Internal RAM: 0000-0x7ffe
-	for(int i=0; i<0x800;i++){
-		map = new uint8;
-	}
+
+	RAM = new uint8[0x800];
 	
-	// Mirrors of 0000-07ffe
-	for (int i=0x800; i<0x2000; i++){
+	// Pointers to RAM and mirrors of 0000-07ffe (0x800-0x2000)
+	for (int i=0; i<0x2000; i++){
 		j = i%0x800;
-		map[i] = map[j];
+		map[i] = &RAM[j];
 	}
 
-	// PPU Registers: 2000-2007
-	for (int i=0x2000; i<0x2008; i++){
-		map[i] = new uint8;
-	}
+	// IO Registers: 2000-2007
+	ioRegs1 = new uint8[8];
 
-	// Mirrors of 2000-2007
-	for (int i=0x2008; i<0x4000; i++){
+	// Pointers to I/O regs and mirrors to it (0x2008-0x3FFF)
+	for (int i=0x2000; i<0x4000; i++){
 		j = (i - 0x2000)%8 ;
-		map[i] = map[j];
+		map[i] = &ioRegs1[j];
 	}
 	
 	// NES APU and I/O registers 4000-401f
+	ioRegs2 = new uint8[0x20];
+	// Pointers to APU registers
+	for (int i=0x4000; i<0x4020; i++){
+		j = i - 0x4000;
+		map[i] = &ioRegs2[j];
+	}	
+
+
+	// Expansion ROM
+	xROM = new uint8[0x1fdf];
+	// Pointers to expansion ROM
+	for (int i=0x4020; i<0x6000; i++){
+		j = i - 0x4020;
+		map[i] = &xROM[j];
+	}		
+
+	// sRAM
+	sRAM = new uint8[0x2000];
+	// Pointers to expansion ROM
+	for (int i=0x6000; i<0x8000; i++){
+		j = i - 0x6000;
+		map[i] = &sRAM[j];
+	}	
+
+	// PRG-ROM
+	prgROM = new uint8[0x8000];
+		for (int i=0x8000; i<0xffff; i++){
+		j = i - 0x8000;
+		map[i] = &prgROM[j];
+	}	
+	
 	// Cartridge space 4020-bfe0
 
 	// ROM should be from 8000 onwards
-	
-	for (int i=0x4000; i<=0xffff; i++){
-		map[i] = new uint8;
-	}
 	
 
 }

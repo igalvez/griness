@@ -10,6 +10,12 @@
 class Memory{
 	private:
 		Mapper mapper;
+		uint8 *RAM;
+		uint8 *ioRegs1;
+		uint8 *ioRegs2;
+		uint8 *xROM;
+		uint8 *sRAM;
+		uint8 *pgrROM;
 		uint8 *map[0xFFFF];
 	public:
 		Memory();
