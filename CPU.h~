@@ -23,19 +23,23 @@ Class CPU{
 		uint8 D;
 		uint8 V;
 
-		Memory *mem;
+		Memory *memory;
 		uint16 opcode;
 		int operand; // Help variable to store operands used by instruction
 		int executeOpcode();
-		uint16 fetchOpcode();
+		void fetchOpcode();
 
 
 	//public:
-		CPU(Memory *memP);
+		void CPU::initialize(Memory *memP);
 		void emulateCycle();
 		static int opcodeCycles[256];
 		static int opcodeSize[256];
 		static int opcodeMode[256];
+		
+		void compareElements(uint8 reg)
+		void store_value(int addr, uint8 value);
+		uint8 get_value(int addr);
 
 }
 

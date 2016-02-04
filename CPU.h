@@ -27,11 +27,11 @@ Class CPU{
 		uint16 opcode;
 		int operand; // Help variable to store operands used by instruction
 		int executeOpcode();
-		uint16 fetchOpcode();
+		void fetchOpcode();
 
 
 	//public:
-		CPU(Memory *memP);
+		void CPU::initialize(Memory *memP);
 		void emulateCycle();
 		static int opcodeCycles[256];
 		static int opcodeSize[256];

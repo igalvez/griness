@@ -38,11 +38,11 @@ void adcF(CPU *cpuObj){
 		if((cpuObj->A + cpuObj->operand + cpuObj->C)>0xFF){
 			cpuObj->A += cpuObj->operand + cpuObj->C;
 		}
+	}
 	else{
 		if((cpuObj->A + cpuObj->memory->read(cpuObj->operand) + cpuObj->C)>0xFF){
 			cpuObj->A += cpuObj->memory->read(cpuObj->operand) + cpuObj->C;
 		}
-
 	}
 }
 
@@ -559,10 +559,10 @@ CPU::CPU(Memory *memP){
 }
 
 void CPU::emulateCycle(){
-
+	fetchOpcode();
 }
 
-uint16 CPU::fetchOpcode(){
+void CPU::fetchOpcode(){
 
 	int mode;
 	opcode = memory->map[pc];
@@ -590,35 +590,35 @@ uint16 CPU::fetchOpcode(){
 			// Accumulator
 			cout << "Mode: accumulator\n";
 			operand = -2;
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case immediate:
 			// Immediate
 			cout << "Mode: immediate\n";
 			operand = memory->map[pc+1];
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case zpage:
 			// Zero Page
 			cout << "Mode: zpage\n";
 			operand = memory->map[pc+1];
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case zpageX:
 			// Indexed Zero Page with X
 			cout << "Mode: zpageX\n";
 			operand = memory->map[pc+1] + X;
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case zpageY:
 			// Indexed Zero Page with Y
 			cout << "Mode: zpageY\n";
 			operand = memory->map[pc+1] + Y;
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case absolute:
@@ -628,7 +628,7 @@ uint16 CPU::fetchOpcode(){
 			int less_sig = memory->map[pc+1];
 			int more_sig = memory->map[pc+2] << 8;
 			operand = more_sig | less_sig;
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=3;
 		}
 			break;
@@ -640,7 +640,7 @@ uint16 CPU::fetchOpcode(){
 			int more_sig = memory->map[pc+2];
 			operand = more_sig | less_sig;
 			operand += X;
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=3;
 		}
 			break;
@@ -652,7 +652,7 @@ uint16 CPU::fetchOpcode(){
 			int more_sig = memory->map[pc+2];
 			operand = more_sig | less_sig;
 			operand += X;
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=3;
 		}
 			break;	
@@ -660,13 +660,13 @@ uint16 CPU::fetchOpcode(){
 			// Implied
 			cout << "Mode: Implied\n";
 			operand = -1;
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=1;
 			break;
 		case relative:
 			cout << "Mode: relative\n";
 			operand = memory->map[pc+1];
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case indirectX:
@@ -676,7 +676,7 @@ uint16 CPU::fetchOpcode(){
 			int less_sig = memory->map[memory->map[pc+1]+X];
 			int more_sig = memory->map[memory->map[pc+1]+X+1] << 8;
 			operand = more_sig | less_sig;
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=2;
 		}
 			break;
@@ -688,7 +688,7 @@ uint16 CPU::fetchOpcode(){
 			int more_sig = memory->map[memory->map[pc+1]+1] << 8;
 			operand = more_sig | less_sig;
 			operand += Y;
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=2;
 		}	
 			break;
@@ -698,7 +698,7 @@ uint16 CPU::fetchOpcode(){
 			cout << "Mode: absoluteIndirect\n";
 			int pointer = (memory->map[pc+2] << 8) | memory->map[pc+1];
 			operand = (memory->map[pointer+1] << 8) | memory->map[pointer];
-			jumpTable[opcode](self);
+			jumpTable[opcode](this);
 			pc+=3;
 		}
 			break;

@@ -60,67 +60,46 @@ Memory :: Memory(){
 }
 
 int Memory::read(int addr){
-	return *map[map_chip.get_mem_address(this)];
+	return *map[addr];
 
 }
 
 int Memory::read(int addr, int nbytes){
-	int vaddr = map_chip.get_mem_address(this);
 	int aux = 0;
 
 	for(int i=0;i<nbytes;i++){
-		aux |= (*map[vaddr + i] << 8*i);
+		aux |= (*map[addr + i] << 8*i);
 	}
 	return aux;
 }
 
 void Memory::write(int addr, uint8 value){
 	if(addr>=0x8000){ //ROM, give control to mapper
-		
-		mapper.write(
+		cartridge->mapper.write(this,addr,value);
 	}
-
-	//int vaddr = map_chip.get_mem_address(this);
-	//*map[vaddr] = value;
-
+	else {
+		*map[addr] = value;
+	}
 }
 
+
+
+
+
 void Memory::write(int addr, uint8 value, int nbytes){
-	int vaddr = map_chip.get_mem_address(this);
+	//int vaddr = map_chip.get_mem_address(this);
 
 	if(bytes<=0 || nbytes>4){
 		return
 	}
 
 	for(int i=0;i<nbytes;i++){
-		*map[vaddr + i] = (value >> i*8) & 0x00FF;
+		*map[addr + i] = (value >> i*8) & 0x00FF;
 	}
 
 }
 
-
-int Memory::loadGame(string gameName){
-	char *buffer;
-	int size_game;
-
-	ifstream newgame(gameName.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
-
-	if (newgame.is_open()){
-		size_game = newgame.tellg();
-		newgame.seekg(0, ios::beg);
-		
-		if (size_game <= (4096-512)){
-			buffer = new uint8[size_game];
-			newgame.read(buffer, size_game);
-			for(int i=0; i<size_game; i++){
-				map[] = buffer[i];
-			}
-			return true;
-		}
-		else{
-			cout << "File too big!";
-			return false;
-		}
-	}
-	return false;
+void Memory::loadGame(Cartridge &cart){
+	cartridge = &cart;
 }
+

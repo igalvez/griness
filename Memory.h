@@ -9,7 +9,9 @@
 
 class Memory{
 	private:
-		Mapper mapper;
+		//Mapper mapper;
+		//uint8 *gameROM; //cartridge
+		Cartridge *cartridge;
 		uint8 *RAM;
 		uint8 *ioRegs1;
 		uint8 *ioRegs2;
