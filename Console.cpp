@@ -2,6 +2,9 @@
 #include "CPU.h"
 #include "Cartridge.h"
 
+#ifndef CONSOLE_CPP
+#define CONSOLE_CPP
+
 class Console {
 	private:
 		Memory *memory;
@@ -13,8 +16,8 @@ class Console {
 			cpu = new CPU(memory);
 			cpu->initialize(&memory);
 		}
-		void loadGame(Cartridge &cart){
-			memory->cartridge = cart
+		void loadGame(Cartridge cart){
+			memory->loadGame(cart);
 		}
 		void run(){
 			while(true){
@@ -22,4 +25,6 @@ class Console {
 			}
 		}
 }
+
+#endif
 		

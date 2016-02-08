@@ -1,12 +1,15 @@
 #include "types.h"
 #include "Memory.h"
+#include <stdio.h>
+
+using namespace std;
 
 #ifndef CPU_H
 #define CPU_H
 
 
 
-Class CPU{
+class CPU{
 	public:
 		uint16 pc; // program counter
 		uint8 sp;  // stack pointer
@@ -31,16 +34,16 @@ Class CPU{
 
 
 	//public:
-		void CPU::initialize(Memory *memP);
+		void initialize(Memory *memP);
 		void emulateCycle();
 		static int opcodeCycles[256];
 		static int opcodeSize[256];
 		static int opcodeMode[256];
 		
-		void compareElements(uint8 reg)
+		void compareElements(uint8 reg);
 		void store_value(int addr, uint8 value);
 		uint8 get_value(int addr);
 
-}
+};
 
 #endif

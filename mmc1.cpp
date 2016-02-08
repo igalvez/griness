@@ -1,3 +1,5 @@
+#include "mmc1.h"
+
 
 enum modesPrg {
 	high, // switch higher bank
@@ -5,10 +7,10 @@ enum modesPrg {
 	switch32 // 32 KB switch
 };
 
-int MMC1::write(int addr, uint8 value){
+int MMC1::write(Memory *mem, int addr, uint8 value){
 	if ((value&0x80)==0x80){ 
 	// If bit 7 is set clear shift register
-		self.clear();
+		clear();
 		return 0;
 	}
 	shift_reg >>= 1;
@@ -18,22 +20,22 @@ int MMC1::write(int addr, uint8 value){
 	// Check if shift register is full (SR only has 5 bits. So only the 5 most significant bits of byte mathers.) xxxxx___
 	if((shift_reg&0x04)==0x04){
 		if(addr >= 0xA000){
-			self.switch_banks(int addr);
+			switch_banks(mem, addr);
 		}
 		else{
-			self.write_control();
+			write_control(addr);
 		}
 		
-		self.clear();
+		clear();
 	}	
 }
 
 void MMC1::clear(){
-	shitf_reg = 0x80;	
+	shift_reg = 0x80;	
 }
 
 void MMC1::switch_banks(Memory *mem, int addr){
-	bank = (shift_reg >> 3) // xxxxx___ =>  ___xxxxx
+	int bank = (shift_reg >> 3); // xxxxx___ =>  ___xxxxx
 	if(addr < 0xC000){
 		//CHR bank 0 TODO
 		chrBank[0] = bank & 0xFF;
@@ -50,7 +52,7 @@ void MMC1::switch_banks(Memory *mem, int addr){
 			if (switchBank!=0){
 				int rom_addr = prgBank*BANK_SIZE;
 				for (int aux=0; aux<BANK_SIZE; aux++){
-					mem->map[switchBank+aux] = mem->cartridge->gameROM[rom_addr+aux];
+					*mem->map[switchBank+aux] = *mem->cartridge->gameROM[rom_addr+aux];
 				}
 
 			}
@@ -61,5 +63,4 @@ void MMC1::switch_banks(Memory *mem, int addr){
 }
 
 void MMC1::write_control(int addr){
-	regControl 
 }

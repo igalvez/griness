@@ -1,6 +1,7 @@
 #include "CPU.h"
 
 
+
 enum Modes{
 	accumulator,
 	immediate,
@@ -51,7 +52,7 @@ void andF(CPU *cpuObj){
 		cpuObj->A &= cpuObj->operand;			
 	}
 	else{
-		cpuObj->A 	&= cpuObj->memory->read(cpuObj->operand);
+		cpuObj->A &= cpuObj->memory->read(cpuObj->operand);
 	}
 }
 
@@ -63,7 +64,7 @@ void aslF(CPU *cpuObj){
 	}
 	else{
 		cpuObj->C = cpuObj->memory->read(cpuObj->operand) >> 7;
-		*cpuObj->memory->map[cpuObj->operand] = *cpuObj->memory->map[cpuObj->operand] << 1;
+		cpuObj->memory->write(cpuObj->operand, cpuObj->memory->read(cpuObj->operand) << 1);
 	}
 }
 
@@ -94,12 +95,12 @@ void beqF(CPU *cpuObj){
 void bitF(CPU *cpuObj){
 // Test Bits in M with A
 	int operand = cpuObj->operand;
-	if((cpuObj->A & *cpuObj->memory->map[operand]) == 0){
+	if((cpuObj->A & cpuObj->memory->read(operand)) == 0){
 		cpuObj->Z = 1;
 	}
 	else{
-		cpuObj->N = *cpuObj->memory->map[operand] >> 7;
-		cpuObj->V = (*cpuObj->memory->map[operand] & 0x40) >> 6;
+		cpuObj->N = cpuObj->memory->read(operand) >> 7;
+		cpuOnj->V = (cpuObj->memory->read(operand) & 0x40) >> 6;
 	}
 }
 
@@ -126,8 +127,8 @@ void bplF(CPU *cpuObj){
 
 void brkF(CPU *cpuObj){
 // Force Break
-	*cpuObj->memory->map[cpuObj->sp--] = cpuObj->pc;
-	*cpuObj->memory->map[cpuObj->sp--] = cpuObj->P;
+	cpuObj->memory->map(cpuObj->sp--, cpuObj->pc);
+	cpuObj->memory->map[cpuObj->sp--, cpuObj->P);
 }
 
 void bvcF(CPU *cpuObj){
@@ -181,7 +182,7 @@ void cpyF(CPU *cpuObj){
 
 void decF(CPU *cpuObj){
 // Decrement M by One
-	*cpuObj->memory->map[cpuObj->operand] -= 1;
+	cpuObj->memory->write(cpuObj->operand, cpuObj->memory->read(cpuObj->operand) - 1);
 }
 
 void dexF(CPU *cpuObj){
@@ -201,7 +202,7 @@ void eorF(CPU *cpuObj){
 		number = cpuObj->operand;
 	}
 	else{
-		number = *cpuObj->memory->map[cpuObj->operand];
+		number = cpuObj->memory->read(cpuObj->operand);
 	}
 
 	cpuObj->A ^= number;
@@ -209,7 +210,7 @@ void eorF(CPU *cpuObj){
 
 void incF(CPU *cpuObj){
 // Increment M by One
-	*cpuObj->memory->map[cpuObj->operand] += 1;
+	cpuObj->memory->write(cpuObj->operand, cpuObj->memory->read(cpuObj->operand)+1);
 }
 
 void inxF(CPU *cpuObj){
@@ -224,13 +225,13 @@ void inyF(CPU *cpuObj){
 
 void jmpF(CPU *cpuObj){
 //  Jump to Location
-	cpuObj->pc = *cpuObj->memory->map[cpuObj->operand] - 3;
+	cpuObj->pc = cpuObj->memory->map[cpuObj->operand] - 3;
 }
 
 void jsrF(CPU *cpuObj){
 // Jump to Location Save Return Address
-	*cpuObj->memory->map[cpuObj->sp--] = cpuObj->pc + 3;
-	cpuObj->pc = *cpuObj->memory->map[cpuObj->operand] - 3;
+	cpuObj->memory->map[cpuObj->sp--] = cpuObj->pc + 3;
+	cpuObj->pc = cpuObj->memory->map[cpuObj->operand] - 3;
 }
 
 void ldaF(CPU *cpuObj){
@@ -239,7 +240,7 @@ void ldaF(CPU *cpuObj){
 		cpuObj->A = cpuObj->operand;
 	}
 	else{
-		cpuObj->A = *cpuObj->memory->map[cpuObj->operand];
+		cpuObj->A = cpuObj->memory->map[cpuObj->operand];
 	}
 
 }
@@ -248,9 +249,8 @@ void ldxF(CPU *cpuObj){
 // Load X with M
 	if(CPU::opcodeMode[cpuObj->opcode] == immediate){
 		cpuObj->X = cpuObj->operand;
-	}
 	else{
-		cpuObj->X = *cpuObj->memory->map[cpuObj->operand];
+		cpuObj->X = cpuObj->memory->map[cpuObj->operand];
 	}
 }
 
@@ -260,7 +260,7 @@ void ldyF(CPU *cpuObj){
 		cpuObj->Y = cpuObj->operand;		
 	}
 	else{
-		cpuObj->Y = *cpuObj->memory->map[cpuObj->operand];
+		cpuObj->Y = cpuObj->memory->map[cpuObj->operand];
 	}
 }
 
@@ -271,14 +271,14 @@ void lsrF(CPU *cpuObj){
 		cpuObj->A = cpuObj->A >> 1;
 	}
 	else{
-		cpuObj->C = (*cpuObj->memory->map[cpuObj->operand] & 0x01);
-		*cpuObj->memory->map[cpuObj->operand] = *cpuObj->memory->map[cpuObj->operand] >> 1;
+		cpuObj->C = (cpuObj->memory->map[cpuObj->operand] & 0x01);
+		cpuObj->memory->map[cpuObj->operand] = cpuObj->memory->map[cpuObj->operand] >> 1;
 	}
 }
 
 void nopF(CPU *cpuObj){
 // No Operation
-	return;
+	return 0;
 }
 
 void oraF(CPU *cpuObj){
@@ -287,30 +287,30 @@ void oraF(CPU *cpuObj){
 		cpuObj->A |= cpuObj->operand;
 	}
 	else{
-		cpuObj->A |= *cpuObj->memory->map[cpuObj->operand];
+		cpuObj->A |= cpuObj->memory->map[cpuObj->operand];
 	}
 }
 
 
 void phaF(CPU *cpuObj){
 //Push A on Stack
-	*cpuObj->memory->map[cpuObj->sp--] = cpuObj->A;
+	cpuObj->memory->map[cpuObj->sp--] = cpuObj->A;
 	//--cpuObj->sp;
 }
 
 void phpF(CPU *cpuObj){
 // Push Processor Status on Stack
-	*cpuObj->memory->map[cpuObj->sp--] = cpuObj->P;
+	cpuObj->memory->map[cpuObj->sp--] = cpuObj->P;
 }
 
 void plaF(CPU *cpuObj){
 // Pull A from Stack
-	cpuObj->A = *cpuObj->memory->map[cpuObj->sp++];
+	cpuObj->A = cpuObj->memory->map[cpuObj->sp++];
 }
 
 void plpF(CPU *cpuObj){
 // Pull Processor Status from Stack
-	cpuObj->P = *cpuObj->memory->map[cpuObj->sp++];
+	cpuObj->P = cpuObjs->memory->map[cpuObj->sp++];
 }
 
 void rolF(CPU *cpuObj){
@@ -322,9 +322,9 @@ void rolF(CPU *cpuObj){
 		cpuObj->A |= cpuObj->C;				
 	}
 	else{
-		aux = (*cpuObj->memory->map[cpuObj->operand] & 0x80);
-		*cpuObj->memory->map[cpuObj->operand] = *cpuObj->memory->map[cpuObj->operand] << 1;
-		*cpuObj->memory->map[cpuObj->operand] |= cpuObj->C;		
+		aux = (cpuObj->memory->map[cpuObj->operand] & 0x80);
+		cpuObj->memory->map[cpuObj->operand] = cpuObj->memory->map[cpuObj->operand] << 1;
+		cpuObj->memory->map[cpuObj->operand] |= cpuObj->C;		
 	}
 	cpuObj->C = aux;
 }
@@ -338,21 +338,21 @@ void rorF(CPU *cpuObj){
 		cpuObj->A |= (cpuObj->C << 7);
 	}
 	else{
-		aux = (*cpuObj->memory->map[cpuObj->operand] & 0x01);
-		*cpuObj->memory->map[cpuObj->operand] = *cpuObj->memory->map[cpuObj->operand] >> 1;
-		*cpuObj->memory->map[cpuObj->operand] |= (cpuObj->C << 7);
+		aux = (cpuObj->memory->map[cpuObj->operand] & 0x01);
+		cpuObj->memory->map[cpuObj->operand] = cpuObj->memory->map[cpuObj->operand] >> 1;
+		cpuObj->memory->map[cpuObj->operand] |= (cpuObj->C << 7);
 	}
 	cpuObj->C = aux;
 }
 void rtiF(CPU *cpuObj){
 // Return from Interrupt
-	cpuObj->P = *cpuObj->memory->map[cpuObj->sp++];
-	cpuObj->pc = *cpuObj->memory->map[cpuObj->sp++];
+	cpuObj->P = cpuObj->memory->map[cpuObj->sp++];
+	cpuObj->pc = cpuObj->memory->map[scpObj->sp++];
 }
 
 void rtsF(CPU *cpuObj){
 // Return from Subroutine
-	cpuObj->pc = *cpuObj->memory->map[cpuObj->sp++];
+	cpuObj->pc = cpuObj->memory->map[cpuObj->sp++];
 }
 
 void sbcF(CPU *cpuObj){
@@ -362,7 +362,7 @@ void sbcF(CPU *cpuObj){
 		number = cpuObj->operand;
 	}
 	else{
-		number = *cpuObj->memory->map[cpuObj->operand];
+		number = cpuObj->memory->map[cpuObj->operand];
 	}
 	cpuObj->A -= (number + cpuObj->C);
 }
@@ -384,17 +384,17 @@ void seiF(CPU *cpuObj){
 
 void staF(CPU *cpuObj){
 // Store A in M
-	*cpuObj->memory->map[cpuObj->operand] = cpuObj->A;
+	cpuObj->memory->map[cpuObj->operand] = cpuObj->A;
 }
 
 void stxF(CPU *cpuObj){
 // Store X in M
-	*cpuObj->memory->map[cpuObj->operand] = cpuObj->X;
+	cpuObj->memory->map[cpuObj->operand] = cpuObj->X;
 }
 
 void styF(CPU *cpuObj){
 // Store Y in M
-	*cpuObj->memory->map[cpuObj->operand] = cpuObj->Y;
+	cpuObj->memory->map[cpuObj->operand] = cpuObj->Y;
 }
 
 void taxF(CPU *cpuObj){
@@ -446,9 +446,9 @@ void tyaF(CPU *cpuObj){
 	}
 }*/
 
-//CPU::CPU(Memory *memap){
-//	memory = memap;
-//}
+CPU::CPU(Memory *memap){
+	memory = memap;
+}
 
 void CPU::compareElements(uint8 reg){
 	uint8 number;
@@ -456,7 +456,7 @@ void CPU::compareElements(uint8 reg){
 		number = operand;
 	}
 	else{
-		number = *memory->map[operand];
+		number = memory->map[operand];
 	}
 	C = 0;
 	if((reg - number)<0){
@@ -503,12 +503,12 @@ void (*jumpTable[256])(CPU *cpuObj) ={
 
 };
 
-int CPU::opcodeCycles[256] ={
+static int CPU::opcodeCycles[256] ={
 	7, 6, 0, 0, 0, 3, 5, 0, 3, 2, 2, 0, 0, 4, 6, 0, //0
 	2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0, //1
 	6, 6, 0, 0, 3, 3, 5, 0, 4, 2, 2, 0, 4, 4, 6, 0, //2
 };
-int CPU::opcodeSize[256] = {
+static int CPU::opcodeSize[256] = {
 
 };
 
@@ -530,24 +530,24 @@ int CPU::opcodeSize[256] = {
 	12 absoluteIndirect
 	*/
 
-int CPU::opcodeMode[256] = {
+static int CPU::opcodeMode[256] = {
 //   0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  A,  B,  C,  D,  E,  F
-	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15, 15,  5,  5, 15,  // 0
-	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 1
-	 8, 10, 15, 15,  2,  2,  2, 15,  8,  1,  0, 15,  5,  5,  5, 15,  // 2
-	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 3
-	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15,  5,  5,  5, 15,  // 4
-	 8,  7, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 5
-	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15, 12,  5,  5, 15,  // 6
-	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 7
-	15, 10, 15, 15,  2,  2,  2, 15,  8, 15,  8, 15,  5,  5,  5, 15,  // 8
-	 8, 11, 15, 15,  3,  3,  4, 15,  8,  7,  8, 15, 15,  6, 15, 15,  // 9
-	 1, 10,  1, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15,  // A
-	 8, 11, 15, 15,  3,  3,  4, 15,  8,  7,  8, 15,  6,  6,  7, 15,  // B
-	 1, 10, 15, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15,  // C
-	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // D
-	 1, 10, 15, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15,  // E
-	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // F
+	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15, 15,  5,  5, 15  // 0
+	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15  // 1
+	 8, 10, 15, 15,  2,  2,  2, 15,  8,  1,  0, 15,  5,  5,  5, 15  // 2
+	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15  // 3
+	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15,  5,  5,  5, 15  // 4
+	 8,  7, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15  // 5
+	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15, 12,  5,  5, 15  // 6
+	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15  // 7
+	15, 10, 15, 15,  2,  2,  2, 15,  8, 15,  8, 15,  5,  5,  5, 15  // 8
+	 8, 11, 15, 15,  3,  3,  4, 15,  8,  7,  8, 15, 15,  6, 15, 15  // 9
+	 1, 10,  1, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15  // A
+	 8, 11, 15, 15,  3,  3,  4, 15,  8,  7,  8, 15,  6,  6,  7, 15  // B
+	 1, 10, 15, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15  // C
+	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15  // D
+	 1, 10, 15, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15  // E
+	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15  // F
 };
 
 int CPU::executeOpcode(){
@@ -555,7 +555,7 @@ int CPU::executeOpcode(){
 }
 
 void CPU::initialize(Memory *memP){
-	memory = memP;
+	memoryPointer = memP;
 }
 
 void CPU::emulateCycle(){
@@ -565,9 +565,9 @@ void CPU::emulateCycle(){
 void CPU::fetchOpcode(){
 
 	int mode;
-	opcode = *memory->map[pc];
+	opcode = memory->map[pc];
 	mode = opcodeMode[opcode];
-	printf("OPCODE = %x \n", opcode);
+	cout << "Opcode: " << opcode << "\n";
 
 	/*
 
@@ -585,7 +585,7 @@ void CPU::fetchOpcode(){
 	indirectY,
 	absoluteIndirect
 	*/
-	switch(mode){
+	switch(mode):
 		case accumulator:
 			// Accumulator
 			cout << "Mode: accumulator\n";
@@ -596,28 +596,28 @@ void CPU::fetchOpcode(){
 		case immediate:
 			// Immediate
 			cout << "Mode: immediate\n";
-			operand = *memory->map[pc+1];
+			operand = memory->map[pc+1];
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case zpage:
 			// Zero Page
 			cout << "Mode: zpage\n";
-			operand = *memory->map[pc+1];
+			operand = memory->map[pc+1];
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case zpageX:
 			// Indexed Zero Page with X
 			cout << "Mode: zpageX\n";
-			operand = *memory->map[pc+1] + X;
+			operand = memory->map[pc+1] + X;
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case zpageY:
 			// Indexed Zero Page with Y
 			cout << "Mode: zpageY\n";
-			operand = *memory->map[pc+1] + Y;
+			operand = memory->map[pc+1] + Y;
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
@@ -625,8 +625,8 @@ void CPU::fetchOpcode(){
 			// Absolute
 		{
 			cout << "Mode: absolute\n";
-			int less_sig = *memory->map[pc+1];
-			int more_sig = *memory->map[pc+2] << 8;
+			int less_sig = memory->map[pc+1];
+			int more_sig = memory->map[pc+2] << 8;
 			operand = more_sig | less_sig;
 			jumpTable[opcode](this);
 			pc+=3;
@@ -636,8 +636,8 @@ void CPU::fetchOpcode(){
 			// Indexed Absolute X:
 		{
 			cout << "Mode: absoluteX\n";
-			int less_sig = *memory->map[pc+1];
-			int more_sig = *memory->map[pc+2];
+			int less_sig = memory->map[pc+1];
+			int more_sig = memory->map[pc+2];
 			operand = more_sig | less_sig;
 			operand += X;
 			jumpTable[opcode](this);
@@ -648,8 +648,8 @@ void CPU::fetchOpcode(){
 			// Indexed Absolute Y	
 		{
 			cout << "Mode: absoluteY\n";
-			int less_sig = *memory->map[pc+1];
-			int more_sig = *memory->map[pc+2];
+			int less_sig = memory->map[pc+1];
+			int more_sig = memory->map[pc+2];
 			operand = more_sig | less_sig;
 			operand += X;
 			jumpTable[opcode](this);
@@ -665,7 +665,7 @@ void CPU::fetchOpcode(){
 			break;
 		case relative:
 			cout << "Mode: relative\n";
-			operand = *memory->map[pc+1];
+			operand = memory->map[pc+1];
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
@@ -673,8 +673,8 @@ void CPU::fetchOpcode(){
 			// Pre-indexed indirect, X
 		{
 			cout << "Mode: indirectX\n";
-			int less_sig = *memory->map[*memory->map[pc+1]+X];
-			int more_sig = *memory->map[*memory->map[pc+1]+X+1] << 8;
+			int less_sig = memory->map[memory->map[pc+1]+X];
+			int more_sig = memory->map[memory->map[pc+1]+X+1] << 8;
 			operand = more_sig | less_sig;
 			jumpTable[opcode](this);
 			pc+=2;
@@ -684,8 +684,8 @@ void CPU::fetchOpcode(){
 			// Post-indexed indirect, Y
 		{
 			cout << "Mode: indirectY\n";
-			int less_sig = *memory->map[*memory->map[pc+1]];
-			int more_sig = *memory->map[*memory->map[pc+1]+1] << 8;
+			int less_sig = memory->map[memory->map[pc+1]];
+			int more_sig = memory->map[memory->map[pc+1]+1] << 8;
 			operand = more_sig | less_sig;
 			operand += Y;
 			jumpTable[opcode](this);
@@ -696,8 +696,8 @@ void CPU::fetchOpcode(){
 			// Absolute Indirect	
 		{
 			cout << "Mode: absoluteIndirect\n";
-			int pointer = (*memory->map[pc+2] << 8) | *memory->map[pc+1];
-			operand = (*memory->map[pointer+1] << 8) | *memory->map[pointer];
+			int pointer = (memory->map[pc+2] << 8) | memory->map[pc+1];
+			operand = (memory->map[pointer+1] << 8) | memory->map[pointer];
 			jumpTable[opcode](this);
 			pc+=3;
 		}

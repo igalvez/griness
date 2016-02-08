@@ -4,7 +4,7 @@ Memory :: Memory(){
 	// Internal RAM: 0000-0x7ffe
 
 	RAM = new uint8[0x800];
-	
+	int j;
 	// Pointers to RAM and mirrors of 0000-07ffe (0x800-0x2000)
 	for (int i=0; i<0x2000; i++){
 		j = i%0x800;
@@ -59,7 +59,7 @@ Memory :: Memory(){
 
 }
 
-int Memory::read(int addr){
+uint8 Memory::read(int addr){
 	return *map[addr];
 
 }
@@ -83,14 +83,11 @@ void Memory::write(int addr, uint8 value){
 }
 
 
-
-
-
-void Memory::write(int addr, uint8 value, int nbytes){
+void Memory::write(int addr, int value, int nbytes){
 	//int vaddr = map_chip.get_mem_address(this);
 
-	if(bytes<=0 || nbytes>4){
-		return
+	if(nbytes<=0 || nbytes>4){
+		return;
 	}
 
 	for(int i=0;i<nbytes;i++){

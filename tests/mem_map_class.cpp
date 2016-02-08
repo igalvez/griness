@@ -10,6 +10,7 @@ class Memory{
 		uint8 *mem[8];
 		uint8 *RAM;
 		uint8 *map[8];
+		int *testel;
 
 		Memory(){
 			create_mem_map();
@@ -30,6 +31,20 @@ class Memory{
 				map[i] = &RAM[j];
 			}
 			print_blocks2();
+		}
+
+		void get_addr(int &value){
+			testel = &value;
+		}
+
+
+		void change_value(int &value){
+			value = 235;
+		}
+		
+
+		void print_value(){
+			printf("TESTE EH %d \n", *testel);
 		}
 		void create_mem_map(){
 			uint8 *k;
@@ -126,6 +141,15 @@ int main(void){
 	*m.map[3] = k;
 
 	m.print_blocks2();
+
+	int value = 122;
+
+	printf("VALUE VAR = %d \n",value);
+	m.get_addr(value);
+	m.print_value();
+
+	m.change_value(value);
+	printf("VALUE VAR = %d \n",value);
 	//uint8 j = m.read(0);
 
 	//printf(" J IS %x \n\n", j);

@@ -1,35 +1,36 @@
-#include "Mapper.h"
+#include "Cartridge.h"
+
+bool Cartridge::loadGame(string gameName){
+	FILE *newgame = fopen(gameName.c_str(), "rb");
+	int size_game;
+	struct stat st;
 
 
-class Cartridge {
-	private:
-		uint8 *gameROM;
-	public:
-		Mapper mapper;
-		bool loadGame(string gameName){
-			char *buffer;
-			int size_game;
+	if (!newgame){
+		printf("Error: Couldnt open file \n");
+		return false;
+	}
+	if (stat(gameName_c_str(), &st) !=0){
+		printf("Error determining the file size \n");
+		return false;
+	}
 
-			ifstream newgame(gameName.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
-
-			if (newgame.is_open()){
-				size_game = newgame.tellg();
-				newgame.seekg(0, ios::beg);
+	size_game = st.st_size;
 		
-				if (size_game <= (4096-512)){
-					buffer = new uint8[size_game];
-					newgame.read(buffer, size_game);
-					for(int i=0; i<size_game; i++){
-						map[] = buffer[i];
-					}
-					return true;
-				}
-				else{
-					cout << "File too big!";
-					return false;
-				}
-			}
-			return false;
-		}
+	gameROM = new uint8[size_game];
+	fread(gameROM, size_game*sizeof(uint8), 1, newgame);
+	fclose(newgame);
+	getMapper();
 }
-		
+
+
+void Cartridge::getMapper(){
+
+	int mapper_number = (gameROM[7] & 0xF0) | ((gameROM[6] & 0xF0) >> 4);	
+	
+	switch(mapper){
+		case 1:
+			mapper = MMC1();
+		break;
+	}
+}
