@@ -1,4 +1,5 @@
 #include "mmc1.h"
+#include "Memory.h"
 
 
 enum modesPrg {
@@ -52,7 +53,7 @@ void MMC1::switch_banks(Memory *mem, int addr){
 			if (switchBank!=0){
 				int rom_addr = prgBank*BANK_SIZE;
 				for (int aux=0; aux<BANK_SIZE; aux++){
-					*mem->map[switchBank+aux] = *mem->cartridge->gameROM[rom_addr+aux];
+					*mem->map[switchBank+aux] = mem->cartridge->gameROM[rom_addr+aux];
 				}
 
 			}

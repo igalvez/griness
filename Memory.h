@@ -14,8 +14,7 @@ using namespace std;
 class Memory{
 	private:
 		//Mapper mapper;
-		//uint8 *gameROM; //cartridge
-		Cartridge *cartridge;
+		
 		uint8 *RAM;
 		uint8 *ioRegs1;
 		uint8 *ioRegs2;
@@ -23,6 +22,7 @@ class Memory{
 		uint8 *sRAM;
 		uint8 *prgROM;
 	public:
+		Cartridge *cartridge; //cartridge
 		uint8 *map[0xFFFF];
 		Memory();
 		void loadGame(Cartridge &cart);

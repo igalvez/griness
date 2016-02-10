@@ -8,6 +8,8 @@
 #ifndef MMC1_H
 #define MMC1_H
 
+class Memory;
+
 class MMC1: public Mapper {
 	private:
 		uint8 shift_reg;

@@ -119,6 +119,7 @@ void bneF(CPU *cpuObj){
 
 void bplF(CPU *cpuObj){
 // Branch on Result Plus
+	printf("BPL operand %d \n", cpuObj->operand); 
 	if(cpuObj->N==0){
 		cpuObj->pc += cpuObj->operand;
 	}
@@ -446,9 +447,22 @@ void tyaF(CPU *cpuObj){
 	}
 }*/
 
-//CPU::CPU(Memory *memap){
-//	memory = memap;
-//}
+CPU::CPU(){
+	pc = 0xC000;
+	sp = 0;
+	A = 0;
+	X = 0;
+	Y = 0;
+	P = 0;
+	N = 0;
+	Z = 0;
+	C = 0;
+	I = 0;
+	D = 0;
+	V = 0;
+	operand = 0;
+	
+}
 
 void CPU::compareElements(uint8 reg){
 	uint8 number;
@@ -533,7 +547,7 @@ int CPU::opcodeSize[256] = {
 int CPU::opcodeMode[256] = {
 //   0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  A,  B,  C,  D,  E,  F
 	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15, 15,  5,  5, 15,  // 0
-	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 1
+	 9, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 1
 	 8, 10, 15, 15,  2,  2,  2, 15,  8,  1,  0, 15,  5,  5,  5, 15,  // 2
 	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 3
 	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15,  5,  5,  5, 15,  // 4
@@ -545,7 +559,7 @@ int CPU::opcodeMode[256] = {
 	 1, 10,  1, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15,  // A
 	 8, 11, 15, 15,  3,  3,  4, 15,  8,  7,  8, 15,  6,  6,  7, 15,  // B
 	 1, 10, 15, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15,  // C
-	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // D
+	 9, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // D
 	 1, 10, 15, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15,  // E
 	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // F
 };
@@ -558,16 +572,19 @@ void CPU::initialize(Memory *memP){
 	memory = memP;
 }
 
-void CPU::emulateCycle(){
-	fetchOpcode();
+int CPU::emulateCycle(){
+
+	int ret = fetchOpcode();
+	return ret;
 }
 
-void CPU::fetchOpcode(){
+int CPU::fetchOpcode(){
 
 	int mode;
 	opcode = *memory->map[pc];
 	mode = opcodeMode[opcode];
 	printf("OPCODE = %x \n", opcode);
+	printf("pc = %x \n", pc);
 
 	/*
 
@@ -585,6 +602,7 @@ void CPU::fetchOpcode(){
 	indirectY,
 	absoluteIndirect
 	*/
+	int nmode = 1;
 	switch(mode){
 		case accumulator:
 			// Accumulator
@@ -703,7 +721,13 @@ void CPU::fetchOpcode(){
 		}
 			break;
 		default: 
-			cout << "NO MODE! \n";
+			nmode = 0;
+			cout << "NO MODE!  ";
+			cout << "nmode = " << nmode << "\n";
 			pc+=1;
+			
 	}
+	cout << "nmode = " << nmode << "\n";
+	cout <<"\n";
+	return nmode;
 }

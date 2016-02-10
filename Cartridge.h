@@ -13,9 +13,8 @@ using namespace std;
 #define CARTRIDGE_H
 
 class Cartridge {
-	private:
-		uint8 *gameROM;
 	public:
+		uint8 *gameROM;
 		Mapper mapper;
 		bool loadGame(string gameName);
 		void getMapper();

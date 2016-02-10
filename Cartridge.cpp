@@ -10,7 +10,7 @@ bool Cartridge::loadGame(string gameName){
 		printf("Error: Couldnt open file \n");
 		return false;
 	}
-	if (stat(gameName_c_str(), &st) !=0){
+	if (stat(gameName.c_str(), &st) !=0){
 		printf("Error determining the file size \n");
 		return false;
 	}
@@ -28,7 +28,7 @@ void Cartridge::getMapper(){
 
 	int mapper_number = (gameROM[7] & 0xF0) | ((gameROM[6] & 0xF0) >> 4);	
 	
-	switch(mapper){
+	switch(mapper_number){
 		case 1:
 			mapper = MMC1();
 		break;

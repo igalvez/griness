@@ -47,7 +47,7 @@ Memory :: Memory(){
 
 	// PRG-ROM
 	prgROM = new uint8[0x8000];
-		for (int i=0x8000; i<0xffff; i++){
+	for (int i=0x8000; i<0xffff; i++){
 		j = i - 0x8000;
 		map[i] = &prgROM[j];
 	}	
@@ -98,5 +98,10 @@ void Memory::write(int addr, int value, int nbytes){
 
 void Memory::loadGame(Cartridge &cart){
 	cartridge = &cart;
+	int j = 0;
+	for (int i=0; i<(0xFFFF-0x8000); i++){
+		*map[i+0x8000] = cartridge->gameROM[i+528];
+		j++;
+	}
 }
 

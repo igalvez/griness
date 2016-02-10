@@ -11,8 +11,8 @@ class Mapper{
 		int prgMode;
 		int chrMode;
 	public:
-		virtual void switch_banks(Memory *mem, int addr);
-		virtual void write(Memory *mem, int addr, int value);
+		void switch_banks(Memory *mem, int addr){};
+		void write(Memory *mem, int addr, int value){};
 			
 };
 
