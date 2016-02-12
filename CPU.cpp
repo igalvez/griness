@@ -137,8 +137,8 @@ void brkF(CPU *cpuObj){ //#00
 // Force Break
 	//cpuObj->memory->write(cpuObj->sp--, cpuObj->pc);
 
-	uint8 pc_high = (cpuObj->pc+2 & 0xFF00) >> 8;
-	uint8 pc_low = cpuObj->pc+2 & 0x00FF;
+	uint8 pc_high = (cpuObj->pc+3 & 0xFF00) >> 8;
+	uint8 pc_low = cpuObj->pc+3 & 0x00FF;
 	cpuObj->memory->write(cpuObj->sp--, pc_high);
 	cpuObj->memory->write(cpuObj->sp--, pc_low);
 	cpuObj->memory->write(cpuObj->sp--, cpuObj->P);
@@ -345,12 +345,12 @@ void phpF(CPU *cpuObj){ //#08
 
 void plaF(CPU *cpuObj){ //#68
 // Pull A from Stack
-	cpuObj->A = cpuObj->memory->read(cpuObj->sp++);
+	cpuObj->A = cpuObj->memory->read(++cpuObj->sp);
 }
 
 void plpF(CPU *cpuObj){ //#28
 // Pull Processor Status from Stack
-	cpuObj->P = cpuObj->memory->read(cpuObj->sp++);
+	cpuObj->P = cpuObj->memory->read(++cpuObj->sp);
 }
 
 void rolF(CPU *cpuObj){ 
@@ -394,15 +394,19 @@ void rorF(CPU *cpuObj){
 }
 void rtiF(CPU *cpuObj){ //#40
 // Return from Interrupt
-	cpuObj->P = cpuObj->memory->read(cpuObj->sp++);
-	cpuObj->pc = cpuObj->memory->read(cpuObj->sp,2);
-	cpuObj->sp+=2;
+	printf("\nSTACK:\n");
+	for (int i=cpuObj->sp; i<=0x1ff; i++){
+		printf("%x = %x\n", i, cpuObj->memory->read(i));
+	}
+	cpuObj->P = cpuObj->memory->read(++cpuObj->sp);
+	cpuObj->pc = cpuObj->memory->read(++cpuObj->sp,2);
+	cpuObj->sp++;
 }
  
 void rtsF(CPU *cpuObj){ //#60
 // Return from Subroutine
-	cpuObj->pc = cpuObj->memory->read(cpuObj->sp,2);
-	cpuObj->sp+=2;
+	cpuObj->pc = cpuObj->memory->read(++cpuObj->sp,2);
+	cpuObj->sp++;
 }
 
 void sbcF(CPU *cpuObj){
@@ -608,7 +612,7 @@ int CPU::opcodeMode[256] = {
 	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15,  5,  5,  5, 15,  // 4
 	 8,  7, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 5
 	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15, 12,  5,  5, 15,  // 6
-	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 7
+	 9, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 7
 	15, 10, 15, 15,  2,  2,  2, 15,  8, 15,  8, 15,  5,  5,  5, 15,  // 8
 	 8, 11, 15, 15,  3,  3,  4, 15,  8,  7,  8, 15, 15,  6, 15, 15,  // 9
 	 1, 10,  1, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15,  // A
@@ -641,6 +645,8 @@ int CPU::fetchOpcode(){
 	printf("OPCODE = %x \n", opcode);
 	printf("pc = %x \n", pc);
 	printf("sp = %x \n", sp);
+	printf("P = %x \n", P);
+	printf("A = %x \n", A);
 
 	/*
 

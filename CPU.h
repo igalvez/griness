@@ -13,9 +13,9 @@ class CPU{
 	public:
 		uint16 pc; // program counter
 		uint16 sp;  // stack pointer
-		uint8 A;   // accumulator
-		uint8 X;  // index register X
-		uint8 Y;  // index register Y
+		sint8 A;   // accumulator
+		sint8 X;  // index register X
+		sint8 Y;  // index register Y
 		uint8 P;  // Processor status
 
 		//flags
