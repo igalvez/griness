@@ -23,7 +23,7 @@ class Memory{
 		uint8 *prgROM;
 	public:
 		Cartridge *cartridge; //cartridge
-		uint8 *map[0xFFFF];
+		uint8 *map[0x10000];
 		Memory();
 		void loadGame(Cartridge &cart);
 		void write(int addr, uint8 value);

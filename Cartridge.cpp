@@ -21,6 +21,8 @@ bool Cartridge::loadGame(string gameName){
 	fread(gameROM, size_game*sizeof(uint8), 1, newgame);
 	fclose(newgame);
 	getMapper();
+	n_banks = gameROM[4];
+	return true;
 }
 
 

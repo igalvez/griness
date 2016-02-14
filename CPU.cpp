@@ -137,11 +137,12 @@ void brkF(CPU *cpuObj){ //#00
 // Force Break
 	//cpuObj->memory->write(cpuObj->sp--, cpuObj->pc);
 
-	uint8 pc_high = (cpuObj->pc+3 & 0xFF00) >> 8;
-	uint8 pc_low = cpuObj->pc+3 & 0x00FF;
+	uint8 pc_high = (cpuObj->pc+2 & 0xFF00) >> 8;
+	uint8 pc_low = cpuObj->pc+2 & 0x00FF;
 	cpuObj->memory->write(cpuObj->sp--, pc_high);
 	cpuObj->memory->write(cpuObj->sp--, pc_low);
 	cpuObj->memory->write(cpuObj->sp--, cpuObj->P);
+	cpuObj->pc = ((cpuObj->memory->read(0xfffe)<<8) | cpuObj->memory->read(0xffff)) -1;
 	cpuObj->I = 1;
 	//cpuObj->pc = cpuObj->memory->read(cpuObj->operand) + PRG_ADDR - 3;
 }
@@ -640,6 +641,7 @@ int CPU::emulateCycle(){
 int CPU::fetchOpcode(){
 
 	int mode;
+	//int addr = (memory->read(0xFFFF)<<8) | memory->read(0xFFFE);
 	opcode = *memory->map[pc];
 	mode = opcodeMode[opcode];
 	printf("OPCODE = %x \n", opcode);
@@ -647,6 +649,10 @@ int CPU::fetchOpcode(){
 	printf("sp = %x \n", sp);
 	printf("P = %x \n", P);
 	printf("A = %x \n", A);
+	printf("banks number = %d \n", memory->cartridge->n_banks);
+	printf("0xfffe = %x \n", memory->read(0xfffe));
+	printf("0xffff = %x \n", memory->read(0xffff));
+	
 
 	/*
 

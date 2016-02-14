@@ -1,5 +1,7 @@
 #include "Memory.h"
 
+
+
 Memory :: Memory(){
 	// Internal RAM: 0000-0x7ffe
 
@@ -47,7 +49,7 @@ Memory :: Memory(){
 
 	// PRG-ROM
 	prgROM = new uint8[0x8000];
-	for (int i=0x8000; i<0xffff; i++){
+	for (int i=0x8000; i<=0xffff; i++){
 		j = i - 0x8000;
 		map[i] = &prgROM[j];
 	}	
@@ -99,9 +101,18 @@ void Memory::write(int addr, int value, int nbytes){
 void Memory::loadGame(Cartridge &cart){
 	cartridge = &cart;
 	int j = 0;
-	for (int i=0; i<(0xFFFF-0x8000); i++){
+	int lastBank = cartridge->n_banks*BANK_SIZE + 16;
+	
+	for(int i=0; i<BANK_SIZE + 16; i++){
 		*map[i+0x8000] = cartridge->gameROM[i+16];
-		j++;
 	}
+
+	for(int i=0; i<BANK_SIZE; i++){
+		*map[i+0xC000] = cartridge->gameROM[i+lastBank];
+	}
+
+	int z = cartridge->gameROM[lastBank + BANK_SIZE*4];
+	printf(" z = %x \n", z);
+
 }
 
