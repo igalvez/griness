@@ -121,7 +121,7 @@ void bmiF(CPU *cpuObj){ //#30
 void bneF(CPU *cpuObj){ //#D0
 // Branch on Result not Zero
 	if(cpuObj->Z==0){
-		cpuObj->pc += cpuObj->operand;
+		cpuObj->pc += cpuObj->operand - 2;
 	}
 }
 
@@ -271,7 +271,10 @@ void ldaF(CPU *cpuObj){
 /* IMMEDIATE:#A9, ZPAGE:#A5, ZPAGEX:#B5, ABSOLUTE:#AD, ABSOLUTEX:#BD
    ABSOLUTEY:#B9, INDIRECTX:#A1, INDIRECTY:#B1 */ 
 	if(CPU::opcodeMode[cpuObj->opcode] == immediate){
-		cpuObj->A = cpuObj->operand;
+		printf("cpuOBJ->A before = %x\n", cpuObj->A);
+		cpuObj->A = (short) cpuObj->operand;
+		printf("operandeeee = %x\n", cpuObj->operand);
+		printf("cpuOBJ->A = %x\n", cpuObj->A);
 	}
 	else{
 		cpuObj->A = cpuObj->memory->read(cpuObj->operand);
@@ -652,7 +655,7 @@ int CPU::fetchOpcode(){
 	printf("banks number = %d \n", memory->cartridge->n_banks);
 	printf("0xfffe = %x \n", memory->read(0xfffe));
 	printf("0xffff = %x \n", memory->read(0xffff));
-	
+
 
 	/*
 
@@ -683,6 +686,7 @@ int CPU::fetchOpcode(){
 			// Immediate
 			cout << "Mode: immediate\n";
 			operand = *memory->map[pc+1];
+			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
@@ -690,13 +694,16 @@ int CPU::fetchOpcode(){
 			// Zero Page
 			cout << "Mode: zpage\n";
 			operand = *memory->map[pc+1];
-			jumpTable[opcode](this);
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=2;
 			break;
 		case zpageX:
 			// Indexed Zero Page with X
 			cout << "Mode: zpageX\n";
 			operand = *memory->map[pc+1] + X;
+			printf("BLIP\n");
+			printf("operand = %x\n", operand);
+			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
@@ -704,6 +711,7 @@ int CPU::fetchOpcode(){
 			// Indexed Zero Page with Y
 			cout << "Mode: zpageY\n";
 			operand = *memory->map[pc+1] + Y;
+			printf("operand = %x\n", operand);
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
@@ -714,6 +722,7 @@ int CPU::fetchOpcode(){
 			int less_sig = *memory->map[pc+1];
 			int more_sig = *memory->map[pc+2] << 8;
 			operand = more_sig | less_sig;
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=3;
 		}
@@ -726,6 +735,7 @@ int CPU::fetchOpcode(){
 			int more_sig = *memory->map[pc+2];
 			operand = more_sig | less_sig;
 			operand += X;
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=3;
 		}
@@ -738,6 +748,7 @@ int CPU::fetchOpcode(){
 			int more_sig = *memory->map[pc+2];
 			operand = more_sig | less_sig;
 			operand += X;
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=3;
 		}
@@ -752,6 +763,7 @@ int CPU::fetchOpcode(){
 		case relative:
 			cout << "Mode: relative\n";
 			operand = *memory->map[pc+1];
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
@@ -762,6 +774,7 @@ int CPU::fetchOpcode(){
 			int less_sig = *memory->map[*memory->map[pc+1]+X];
 			int more_sig = *memory->map[*memory->map[pc+1]+X+1] << 8;
 			operand = more_sig | less_sig;
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
 		}
@@ -774,6 +787,7 @@ int CPU::fetchOpcode(){
 			int more_sig = *memory->map[*memory->map[pc+1]+1] << 8;
 			operand = more_sig | less_sig;
 			operand += Y;
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
 		}	
@@ -784,8 +798,10 @@ int CPU::fetchOpcode(){
 			cout << "Mode: absoluteIndirect\n";
 			int pointer = (*memory->map[pc+2] << 8) | *memory->map[pc+1];
 			pointer += 0x8000;
+			printf("pointer %x = %x\n", pointer, ((*memory->map[pointer+1] << 8) | *memory->map[pointer]));
 			operand = (*memory->map[pointer+1] << 8) | *memory->map[pointer];
 			operand += 0x8000;
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=3;
 		}

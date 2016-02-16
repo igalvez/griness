@@ -111,8 +111,8 @@ void Memory::loadGame(Cartridge &cart){
 		*map[i+0xC000] = cartridge->gameROM[i+lastBank];
 	}
 
-	int z = cartridge->gameROM[lastBank + BANK_SIZE*4];
-	printf(" z = %x \n", z);
+	//int z = cartridge->gameROM[lastBank + BANK_SIZE*4];
+	//printf(" z = %x \n", z);
 
 }
 
