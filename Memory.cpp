@@ -61,12 +61,12 @@ Memory :: Memory(){
 
 }
 
-uint8 Memory::read(int addr){
+uint8 Memory::read(uint16 addr){
 	return *map[addr];
 
 }
 
-int Memory::read(int addr, int nbytes){
+int Memory::read(uint16 addr, int nbytes){
 	int aux = 0;
 
 	for(int i=0;i<nbytes;i++){
@@ -75,7 +75,7 @@ int Memory::read(int addr, int nbytes){
 	return aux;
 }
 
-void Memory::write(int addr, uint8 value){
+void Memory::write(int addr, sint8 value){
 	if(addr>=0x8000){ //ROM, give control to mapper
 		cartridge->mapper.write(this,addr,value);
 	}

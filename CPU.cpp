@@ -33,17 +33,18 @@ enum Modes{
 
 void adcF(CPU *cpuObj){ // 
 // Add Memory to Accumulator with Carry
+	uint8 carry = cpuObj->getPflag(C);
 	if(CPU::opcodeMode[cpuObj->opcode] == immediate){ //#69
-		if((cpuObj->A + cpuObj->operand + cpuObj->C)>0xFF){
-			cpuObj->A += cpuObj->operand + cpuObj->C;
+		if((cpuObj->A + cpuObj->operand + carry)>0xFF){
+			cpuObj->A += cpuObj->operand + carry;
 		}
 	}
 	else{  
 	/* ZPAGE:#65, ZPAGEX:#75, ABSOLUTE:#6D, ABSOLUTEX:#7D
 	   ABSOLUTEY:#79, INDIRECTX:#61, INDIRECTY:#71
 	*/
-		if((cpuObj->A + cpuObj->memory->read(cpuObj->operand) + cpuObj->C)>0xFF){
-			cpuObj->A += cpuObj->memory->read(cpuObj->operand) + cpuObj->C;
+		if((cpuObj->A + cpuObj->memory->read(cpuObj->operand) + carry)>0xFF){
+			cpuObj->A += cpuObj->memory->read(cpuObj->operand) + carry;
 		}
 	}
 }
@@ -63,12 +64,12 @@ void andF(CPU *cpuObj){
 void aslF(CPU *cpuObj){
 // Shift Left One Bit (M or A)
 	if(CPU::opcodeMode[cpuObj->opcode] == accumulator){ //#0A
-		cpuObj->C = cpuObj->A >> 7;
+		cpuObj->setPflag(C,cpuObj->A >> 7);
 		cpuObj->A = cpuObj->A << 1;
 	}
 	else{
 		/* ZPAGE:#06, ZPAGEX:#16, ABSOLUTE:#0E, ABSOULTEX:#1E */
-		cpuObj->C = cpuObj->memory->read(cpuObj->operand) >> 7;
+		cpuObj->setPflag(C, cpuObj->memory->read(cpuObj->operand) >> 7);
 		cpuObj->memory->write(cpuObj->operand, cpuObj->memory->read(cpuObj->operand) << 1);
 	}
 }
@@ -76,7 +77,7 @@ void aslF(CPU *cpuObj){
 void bccF(CPU *cpuObj){ //#90
 // Branch on C Clear
 	int operand = cpuObj->operand;
-	if(cpuObj->C==0){
+	if(cpuObj->getPflag(C)==0){
 		cpuObj->pc += operand;
 	}
 }
@@ -84,7 +85,7 @@ void bccF(CPU *cpuObj){ //#90
 void bcsF(CPU *cpuObj){ //#B0
 // Branch on C Set
 	int operand = cpuObj->operand;
-	if(cpuObj->C==1){
+	if(cpuObj->getPflag(C)==1){
 		cpuObj->pc += operand;
 	}
 }
@@ -92,7 +93,7 @@ void bcsF(CPU *cpuObj){ //#B0
 void beqF(CPU *cpuObj){//#F0
 // Branch on Result Zero
 	int operand = cpuObj->operand;
-	if(cpuObj->Z==1){
+	if(cpuObj->getPflag(Z)==1){
 		cpuObj->pc += operand;
 	}
 }
@@ -103,24 +104,24 @@ void bitF(CPU *cpuObj){
 	uint8 memV = cpuObj->memory->read(cpuObj->operand);
 	int operand = cpuObj->operand;
 	if((cpuObj->A & memV) == 0){
-		cpuObj->Z = 1;
+		cpuObj->setPflag(Z,1);
 	}
 	else{
-		cpuObj->N = memV >> 7;
-		cpuObj->V = (memV & 0x40) >> 6;
+		cpuObj->setPflag(N,memV >> 7);
+		cpuObj->setPflag(V,(memV & 0x40) >> 6);
 	}
 }
 
 void bmiF(CPU *cpuObj){ //#30
 // Branch on Result Minus
-	if(cpuObj->N==1){
+	if(cpuObj->getPflag(N)==1){
 		cpuObj->pc += cpuObj->operand + PRG_ADDR;
 	}
 }
 
 void bneF(CPU *cpuObj){ //#D0
 // Branch on Result not Zero
-	if(cpuObj->Z==0){
+	if(cpuObj->getPflag(Z)==0){
 		cpuObj->pc += cpuObj->operand - 2;
 	}
 }
@@ -128,7 +129,7 @@ void bneF(CPU *cpuObj){ //#D0
 void bplF(CPU *cpuObj){ //#10
 // Branch on Result Plus
 	printf("BPL operand %d \n", cpuObj->operand); 
-	if(cpuObj->N==0){
+	if(cpuObj->getPflag(N)==0){
 		cpuObj->pc += cpuObj->operand;
 	}
 }
@@ -143,42 +144,42 @@ void brkF(CPU *cpuObj){ //#00
 	cpuObj->memory->write(cpuObj->sp--, pc_low);
 	cpuObj->memory->write(cpuObj->sp--, cpuObj->P);
 	cpuObj->pc = ((cpuObj->memory->read(0xfffe)<<8) | cpuObj->memory->read(0xffff)) -1;
-	cpuObj->I = 1;
+	cpuObj->setPflag(B,1);
 	//cpuObj->pc = cpuObj->memory->read(cpuObj->operand) + PRG_ADDR - 3;
 }
 
 void bvcF(CPU *cpuObj){ //#50
 // Branch on Overflow Clear
-	if(cpuObj->V==0){
+	if(cpuObj->getPflag(V)==0){
 		cpuObj->pc += cpuObj->operand;
 	}
 }
 
 void bvsF(CPU *cpuObj){ //#70
 // Branch on Overflow Set
-	if(cpuObj->V==1){
+	if(cpuObj->getPflag(V)==1){
 		cpuObj->pc += cpuObj->operand;
 	}
 }
 
 void clcF(CPU *cpuObj){ //#18
 // Clear C Flag
-	cpuObj->C = 0;
+	cpuObj->setPflag(C,0);
 }
 
 void cldF(CPU *cpuObj){ //#D8
 // Clear Decimal Mode
-	cpuObj->D = 0;
+	cpuObj->setPflag(D,0);
 }
 
 void cliF(CPU *cpuObj){ //#58
 // Clear interrupt Disable Bit
-	cpuObj->I = 0;
+	cpuObj->setPflag(I,0);
 }
 
 void clvF(CPU *cpuObj){ //#B8
 // Clear Overflow Flag
-	cpuObj->V = 0;
+	cpuObj->setPflag(V,0);
 }
 
 void cmpF(CPU *cpuObj){
@@ -308,12 +309,12 @@ void lsrF(CPU *cpuObj){
 // Shift Right One Bit (M or A)
 /* ACCUMULATOR:#4A, ZPAGE:#46, ZPAGEX:#56, ABSOLUTE:#4E, ABSOLUTEX:#5E */ 
 	if(CPU::opcodeMode[cpuObj->opcode] == accumulator){
-		cpuObj->C = (cpuObj->A & 0x01);
+		cpuObj->setPflag(C,(cpuObj->A & 0x01));
 		cpuObj->A = cpuObj->A >> 1;
 	}
 	else{
 		int memV = cpuObj->memory->read(cpuObj->operand);
-		cpuObj->C = (memV & 0x01);
+		cpuObj->setPflag(C,(memV & 0x01));
 		cpuObj->memory->write(cpuObj->operand, memV >> 1);
 	}
 }
@@ -364,18 +365,18 @@ void rolF(CPU *cpuObj){
 	if(CPU::opcodeMode[cpuObj->opcode] == accumulator){
 		aux = (cpuObj->A & 0x80);
 		cpuObj->A = cpuObj->A << 1;
-		cpuObj->A |= cpuObj->C;				
+		cpuObj->A |= cpuObj->getPflag(C);				
 	}
 	else{
 		uint8 memV = cpuObj->memory->read(cpuObj->operand);	
-		int n = memV << 1 | cpuObj->C	;
+		int n = memV << 1 | cpuObj->getPflag(C);
 		aux = (memV & 0x80);
 		cpuObj->memory->write(cpuObj->operand, n);
 		
 		//*cpuObj->memory->write(cpuObj->operand] = memV << 1;
 		//*cpuObj->memory->map[cpuObj->operand] |= cpuObj->C;		
 	}
-	cpuObj->C = aux;
+	cpuObj->setPflag(C,aux);
 }
 
 void rorF(CPU *cpuObj){
@@ -385,16 +386,16 @@ void rorF(CPU *cpuObj){
 	if(CPU::opcodeMode[cpuObj->opcode] == accumulator){
 		aux = (cpuObj->A & 0x01);
 		cpuObj->A = cpuObj->A >> 1;
-		cpuObj->A |= (cpuObj->C << 7);
+		cpuObj->A |= (cpuObj->getPflag(C) << 7);
 	}
 	else{
 		int memV = cpuObj->memory->read(cpuObj->operand);
-		int n = (cpuObj->C << 7) | (memV >> 1);
+		int n = (cpuObj->getPflag(C) << 7) | (memV >> 1);
 		aux = (memV & 0x01);
 		cpuObj->memory->write(cpuObj->operand, n);
 		//*cpuObj->memory->map[cpuObj->operand] |= (cpuObj->C << 7);
 	}
-	cpuObj->C = aux;
+	cpuObj->setPflag(C,aux);
 }
 void rtiF(CPU *cpuObj){ //#40
 // Return from Interrupt
@@ -424,22 +425,22 @@ void sbcF(CPU *cpuObj){
 	else{
 		number = cpuObj->memory->read(cpuObj->operand);
 	}
-	cpuObj->A -= (number + cpuObj->C);
+	cpuObj->A -= (number + cpuObj->getPflag(C));
 }
 
 void secF(CPU *cpuObj){ //#38	
 // Set Carry Flag
-	cpuObj->C = 1;
+	cpuObj->setPflag(C,1);
 }
 
 void sedF(CPU *cpuObj){ //#F8
 // Set Decimal Mode
-	cpuObj->D = 1;
+	cpuObj->setPflag(D,1);
 }
 
 void seiF(CPU *cpuObj){ //#78
 // Set Interrupt Disable Status
-	cpuObj->I = 1;
+	cpuObj->setPflag(I,1);
 }
 
 void staF(CPU *cpuObj){ 
@@ -517,12 +518,6 @@ CPU::CPU(){
 	X = 0;
 	Y = 0;
 	P = 0;
-	N = 0;
-	Z = 0;
-	C = 0;
-	I = 0;
-	D = 0;
-	V = 0;
 	operand = 0;
 	
 }
@@ -535,18 +530,18 @@ void CPU::compareElements(uint8 reg){
 	else{
 		number = *memory->map[operand];
 	}
-	C = 0;
+	setPflag(C,0);
 	if((reg - number)<0){
-		N = 1;
-		Z = 0;
+		setPflag(N,1);
+		setPflag(Z,0);
 	}
 	else if((reg - number) == 0){
-		N = 0;
-		Z = 1;	
+		setPflag(N,0);
+		setPflag(Z,1);	
 	}
 	else{
-		N = 0;
-		Z = 0;
+		setPflag(N,0);
+		setPflag(Z,0);
 	}
 }
 
@@ -626,6 +621,18 @@ int CPU::opcodeMode[256] = {
 	 1, 10, 15, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15,  // E
 	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // F
 };
+
+
+
+uint8 CPU::getPflag(int flagPos){
+	uint8 flag = (P >> flagPos) & 0x01;
+	return flag;
+}
+
+void CPU::setPflag(int flagPos, uint8 value){
+	P = (P & ~(0x01 << flagPos)) | (value << flagPos);	
+}
+
 
 int CPU::executeOpcode(){
 	jumpTable[opcode](this);

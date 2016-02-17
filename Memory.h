@@ -26,10 +26,10 @@ class Memory{
 		uint8 *map[0x10000];
 		Memory();
 		void loadGame(Cartridge &cart);
-		void write(int addr, uint8 value);
+		void write(int addr, sint8 value);
 		void write(int addr, int value, int nbytes);
-		uint8 read(int addr);
-		int read(int addr, int nbytes);
+		uint8 read(uint16 addr);
+		int read(uint16 addr, int nbytes);
 
 
 };
