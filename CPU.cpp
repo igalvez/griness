@@ -115,14 +115,14 @@ void bitF(CPU *cpuObj){
 void bmiF(CPU *cpuObj){ //#30
 // Branch on Result Minus
 	if(cpuObj->getPflag(N)==1){
-		cpuObj->pc += cpuObj->operand + PRG_ADDR;
+		cpuObj->pc += cpuObj->operand;
 	}
 }
 
 void bneF(CPU *cpuObj){ //#D0
 // Branch on Result not Zero
 	if(cpuObj->getPflag(Z)==0){
-		cpuObj->pc += cpuObj->operand - 2;
+		cpuObj->pc += cpuObj->operand;
 	}
 }
 
@@ -265,6 +265,9 @@ void jsrF(CPU *cpuObj){ //#20
 	cpuObj->memory->write(cpuObj->sp--, pc_high);
 	cpuObj->memory->write(cpuObj->sp--, pc_low);
 	cpuObj->pc = cpuObj->operand - 3;
+	for (int i=cpuObj->sp; i<=0x1ff; i++){
+		printf("%x = %x\n", i, cpuObj->memory->read(i));
+	}
 }
 
 void ldaF(CPU *cpuObj){
@@ -278,6 +281,8 @@ void ldaF(CPU *cpuObj){
 		printf("cpuOBJ->A = %x\n", cpuObj->A);
 	}
 	else{
+		printf("MEM TO A = %x",cpuObj->memory->read(cpuObj->operand)); 
+
 		cpuObj->A = cpuObj->memory->read(cpuObj->operand);
 	}
 
@@ -613,13 +618,13 @@ int CPU::opcodeMode[256] = {
 	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15, 12,  5,  5, 15,  // 6
 	 9, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 7
 	15, 10, 15, 15,  2,  2,  2, 15,  8, 15,  8, 15,  5,  5,  5, 15,  // 8
-	 8, 11, 15, 15,  3,  3,  4, 15,  8,  7,  8, 15, 15,  6, 15, 15,  // 9
+	 9, 11, 15, 15,  3,  3,  4, 15,  8,  7,  8, 15, 15,  6, 15, 15,  // 9
 	 1, 10,  1, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15,  // A
 	 9, 11, 15, 15,  3,  3,  4, 15,  8,  7,  8, 15,  6,  6,  7, 15,  // B
 	 1, 10, 15, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15,  // C
 	 9, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // D
 	 1, 10, 15, 15,  2,  2,  2, 15,  8,  1,  8, 15,  5,  5,  5, 15,  // E
-	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // F
+	 9, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // F
 };
 
 
@@ -687,7 +692,7 @@ int CPU::fetchOpcode(){
 			cout << "Mode: accumulator\n";
 			operand = -2;
 			jumpTable[opcode](this);
-			pc+=2;
+			pc+=1;
 			break;
 		case immediate:
 			// Immediate
@@ -702,6 +707,7 @@ int CPU::fetchOpcode(){
 			cout << "Mode: zpage\n";
 			operand = *memory->map[pc+1];
 			printf("MEM[%x] = %x\n", operand, memory->read(operand));
+			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case zpageX:
@@ -804,10 +810,10 @@ int CPU::fetchOpcode(){
 		{
 			cout << "Mode: absoluteIndirect\n";
 			int pointer = (*memory->map[pc+2] << 8) | *memory->map[pc+1];
-			pointer += 0x8000;
+			//pointer += 0x8000;
 			printf("pointer %x = %x\n", pointer, ((*memory->map[pointer+1] << 8) | *memory->map[pointer]));
 			operand = (*memory->map[pointer+1] << 8) | *memory->map[pointer];
-			operand += 0x8000;
+			//operand += 0x8000;
 			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=3;
@@ -822,6 +828,10 @@ int CPU::fetchOpcode(){
 	}
 	cout << "nmode = " << nmode << "\n";
 	printf("operand = %x \n",operand);
+
+	for (int i=(sp+1); i<=0x1ff; i++){
+		printf("%x = %x\n", i, memory->read(i));
+	}
 	cout <<"\n";
 	return nmode;
 }
