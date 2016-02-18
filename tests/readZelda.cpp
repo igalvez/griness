@@ -37,7 +37,7 @@ int main(void){
 	fclose(game);
 
 	int cont = 0;
-	for (int i=0; i<0x200; i++){
+	for (int i=0; i<=(9*16*1024 + 16); i++){
 		printf("%x - %x \n", i-16, gameROM[i]);
 		if(gameROM[i+16]!=0xff){
 			//break;

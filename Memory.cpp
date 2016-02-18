@@ -101,7 +101,7 @@ void Memory::write(int addr, int value, int nbytes){
 void Memory::loadGame(Cartridge &cart){
 	cartridge = &cart;
 	int j = 0;
-	int lastBank = cartridge->n_banks*BANK_SIZE + 16;
+	int lastBank = (cartridge->n_banks - 1)*BANK_SIZE + 16;
 	
 	for(int i=0; i<BANK_SIZE + 16; i++){
 		*map[i+0x8000] = cartridge->gameROM[i+16];

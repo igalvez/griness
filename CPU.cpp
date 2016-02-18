@@ -254,17 +254,17 @@ void jmpF(CPU *cpuObj){
 //  Jump to Location
 /* INDIRECT:#6C, ABSOLUTE:#4C */
 
-	cpuObj->pc = cpuObj->memory->read(cpuObj->operand) + PRG_ADDR - 3;
+	cpuObj->pc =  cpuObj->operand - 3;
 
 }
 
 void jsrF(CPU *cpuObj){ //#20
 // Jump to Location Save Return Address
 	uint8 pc_high = (cpuObj->pc+2 & 0xFF00) >> 8;
-	uint8 pc_low = cpuObj->pc+2 & 0x00FF;
+	uint8 pc_low = (cpuObj->pc+2) & 0x00FF;
 	cpuObj->memory->write(cpuObj->sp--, pc_high);
 	cpuObj->memory->write(cpuObj->sp--, pc_low);
-	cpuObj->pc = cpuObj->memory->read(cpuObj->operand) + PRG_ADDR - 3;
+	cpuObj->pc = cpuObj->operand - 3;
 }
 
 void ldaF(CPU *cpuObj){
