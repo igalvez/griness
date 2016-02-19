@@ -40,6 +40,7 @@ class CPU{
 		Memory *memory;
 		uint16 opcode;
 		uint16 operand; // Help variable to store operands used by instruction
+		uint16 reset_vector;
 		int executeOpcode();
 		int fetchOpcode();
 
@@ -57,6 +58,8 @@ class CPU{
 		uint8 get_value(int addr);
 		uint8 getPflag(int flagPos);
 		void setPflag(int flagPos, uint8 value);
+		void reset();
+		void branch();
 		
 
 };

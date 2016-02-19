@@ -1,5 +1,5 @@
 #include "CPU.h"
-#define PRG_ADDR 0x8000
+#define PRG_OFFSET 0x8000
 
 enum Modes{
 	accumulator,
@@ -78,7 +78,7 @@ void bccF(CPU *cpuObj){ //#90
 // Branch on C Clear
 	int operand = cpuObj->operand;
 	if(cpuObj->getPflag(C)==0){
-		cpuObj->pc += operand;
+		cpuObj->branch();;
 	}
 }
 
@@ -86,7 +86,7 @@ void bcsF(CPU *cpuObj){ //#B0
 // Branch on C Set
 	int operand = cpuObj->operand;
 	if(cpuObj->getPflag(C)==1){
-		cpuObj->pc += operand;
+		cpuObj->branch();;
 	}
 }
 
@@ -94,7 +94,7 @@ void beqF(CPU *cpuObj){//#F0
 // Branch on Result Zero
 	int operand = cpuObj->operand;
 	if(cpuObj->getPflag(Z)==1){
-		cpuObj->pc += operand;
+		cpuObj->branch();;
 	}
 }
 
@@ -115,14 +115,14 @@ void bitF(CPU *cpuObj){
 void bmiF(CPU *cpuObj){ //#30
 // Branch on Result Minus
 	if(cpuObj->getPflag(N)==1){
-		cpuObj->pc += cpuObj->operand;
+		cpuObj->branch();
 	}
 }
 
 void bneF(CPU *cpuObj){ //#D0
 // Branch on Result not Zero
 	if(cpuObj->getPflag(Z)==0){
-		cpuObj->pc += cpuObj->operand;
+		cpuObj->branch();
 	}
 }
 
@@ -130,9 +130,11 @@ void bplF(CPU *cpuObj){ //#10
 // Branch on Result Plus
 	printf("BPL operand %d \n", cpuObj->operand); 
 	if(cpuObj->getPflag(N)==0){
-		cpuObj->pc += cpuObj->operand;
+		cpuObj->branch();
 	}
 }
+
+
 
 void brkF(CPU *cpuObj){ //#00
 // Force Break
@@ -151,14 +153,14 @@ void brkF(CPU *cpuObj){ //#00
 void bvcF(CPU *cpuObj){ //#50
 // Branch on Overflow Clear
 	if(cpuObj->getPflag(V)==0){
-		cpuObj->pc += cpuObj->operand;
+		cpuObj->branch();
 	}
 }
 
 void bvsF(CPU *cpuObj){ //#70
 // Branch on Overflow Set
 	if(cpuObj->getPflag(V)==1){
-		cpuObj->pc += cpuObj->operand;
+		cpuObj->branch();
 	}
 }
 
@@ -645,12 +647,26 @@ int CPU::executeOpcode(){
 
 void CPU::initialize(Memory *memP){
 	memory = memP;
+	reset_vector = (memory->read(0xfffd)<<8) | memory->read(0xfffc);
+	printf("RESET VECTOR = %x\n", reset_vector);
+	reset();
+}
+
+
+void CPU::branch(){
+	uint8 low = (pc & 0x00FF) + (operand & 0x00FF);
+	uint8 high = (pc>>8) + (operand>>8);
+	pc = (high<<8) + low;
 }
 
 int CPU::emulateCycle(){
 
 	int ret = fetchOpcode();
 	return ret;
+}
+
+void CPU::reset(){
+	pc = reset_vector;
 }
 
 int CPU::fetchOpcode(){
@@ -667,6 +683,8 @@ int CPU::fetchOpcode(){
 	printf("banks number = %d \n", memory->cartridge->n_banks);
 	printf("0xfffe = %x \n", memory->read(0xfffe));
 	printf("0xffff = %x \n", memory->read(0xffff));
+	printf("0xfffc = %x \n", memory->read(0xfffc));
+	printf("0xfffd = %x \n", memory->read(0xfffd));
 
 
 	/*

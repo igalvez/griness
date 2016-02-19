@@ -14,6 +14,7 @@ class Console {
 		Console();
 		void loadGame(Cartridge cart);
 		void run();
+		void reset();
 };
 
 #endif

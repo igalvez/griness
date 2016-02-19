@@ -2,7 +2,7 @@
 #include <sys/stat.h>
 
 
-#define GNAME "AirFortress.nes"
+#define GNAME "Yoshi.nes"
 
 typedef unsigned char uint8;
 
