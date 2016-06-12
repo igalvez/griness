@@ -30,6 +30,7 @@ class Memory{
 		void write(int addr, int value, int nbytes);
 		uint8 read(uint16 addr);
 		int read(uint16 addr, int nbytes);
+		int switchBanks(int bank, uint8 mode);
 
 
 };

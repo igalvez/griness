@@ -24,7 +24,8 @@ int MMC1::write(Memory *mem, int addr, uint8 value){
 			switch_banks(mem, addr);
 		}
 		else{
-			write_control(addr);
+			//write_control(addr);
+			controlReg = shift_reg;
 		}
 		
 		clear();
@@ -40,23 +41,29 @@ void MMC1::switch_banks(Memory *mem, int addr){
 	if(addr < 0xC000){
 		//CHR bank 0 TODO
 		chrBank[0] = bank & 0xFF;
+		printf("CHAR0 SWITCH BANK\n");
 	}
 	else if(addr < 0xE000){
-		//CHR bank 1 TODO
+		//CHR bank  1 TODO
 		chrBank[1] = bank & 0xFF;
+		printf("CHAR1 SWITCH BANK\n");
 	}
 	else{
-		//PRG bank TODO
+		//PRG bank 
 		if(prgBank != bank&0x0F){ 
 			prgBank = bank & 0x0F;
+			uint8 mode = (controlReg & 0x0C)>>2; //PRG ROM bank mode
+			
+			mem->switchBanks(prgBank,mode);
 
-			if (switchBank!=0){
-				int rom_addr = prgBank*BANK_SIZE;
-				for (int aux=0; aux<BANK_SIZE; aux++){
-					*mem->map[switchBank+aux] = mem->cartridge->gameROM[rom_addr+aux];
-				}
+			//if (switchBank!=0){
+			//	int rom_addr = prgBank*BANK_SIZE;
+			//	for (int aux=0; aux<BANK_SIZE; aux++){
+			//		*mem->map[switchBank+aux] = mem->cartridge->gameROM[rom_addr+aux];
+			//	}
 
-			}
+			//}
+			printf("PRG SWITCH BANK\n");
 			
 		}	
 	}

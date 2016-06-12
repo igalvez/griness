@@ -31,7 +31,7 @@ class CPU{
 		/*
 		uint8 N; Negative flag
 		uint8 Z; Zero flag
-		uint8 C; Carry flag
+		uint8 C; Carry flagO
 		uint8 I; Interrupt disable flag
 		uint8 B; Break flag
 		uint8 D; // not used

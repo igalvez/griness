@@ -61,6 +61,12 @@ Memory :: Memory(){
 
 }
 
+//TODO: change the read and write to use this instead of map (which is an unnecessary waste of memory)
+/*
+uint8 Memory::read(uint16 addr){
+
+*/
+
 uint8 Memory::read(uint16 addr){
 	return *map[addr];
 
@@ -116,3 +122,35 @@ void Memory::loadGame(Cartridge &cart){
 
 }
 
+int Memory::switchBanks(int bank,uint8 mode){
+	if (bank>cartridge->n_banks){
+		printf("Error, bank number bigger than max number of banks in ROM");
+		return 1;
+	}
+	//int addr = bank*BANK_SIZE;
+	if (mode&0x02==0){ //switch 32KB
+		int addr = (bank & 0x0E)*BANK_SIZE + 16; //ignore last bit (which is only used for 16KB bank switches)
+		for(int i=0; i<2*BANK_SIZE; i++){
+			*map[i+0x8000] = cartridge->gameROM[addr + i];
+		}
+	}
+	else{
+		int addr = bank*BANK_SIZE + 16;
+		uint16 start_addr;
+		if (mode&0x01==0){
+			// Switch 16 KB at C000
+			start_addr = 0xC000;
+		}
+		else{
+			// Switch 16 KB at 8000
+			start_addr = 0x8000;
+		}
+		for (int i=0; i<BANK_SIZE; i++){
+			*map[i+start_addr] = cartridge->gameROM[addr + i];
+		}
+	}
+	return 0;
+}
+			
+		
+	
