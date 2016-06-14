@@ -5,6 +5,7 @@
 #define GAME_MEM_REGION
 #define ROM_LIMIT 
 #define BANK_SIZE 16*1024
+#define VRAM_SIZE 16*1024
 
 typedef unsigned char uint8;
 typedef unsigned short uint16;
