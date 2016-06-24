@@ -12,8 +12,9 @@ using namespace std;
 
 
 class Memory{
-	private:
+	private: 
 		//Mapper mapper;
+		VideoRAM *vram;
 		
 		uint8 *RAM;
 		uint8 *ioRegs1;
@@ -31,6 +32,7 @@ class Memory{
 		uint8 read(uint16 addr);
 		int read(uint16 addr, int nbytes);
 		int switchBanks(int bank, uint8 mode);
+		int doDMA(uint8 value);
 
 
 };

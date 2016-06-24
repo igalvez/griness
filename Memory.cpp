@@ -87,6 +87,10 @@ void Memory::write(int addr, sint8 value){
 	}
 	else {
 		*map[addr] = value;
+		
+		if(addr==0x4014){
+			doDMA(value);
+		}
 	}
 }
 
@@ -152,5 +156,11 @@ int Memory::switchBanks(int bank,uint8 mode){
 	return 0;
 }
 			
-		
+int Memory::doDMA(uint8 value){
+	uint16 addr = value*0x100;
+	
+	for(int i =0; i<256; i++){
+		vram->SPRRAM[i] = *map[addr + i];
+	}
+}
 	
