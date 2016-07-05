@@ -14,7 +14,7 @@ using namespace std;
 class Memory{
 	private: 
 		//Mapper mapper;
-		VideoRAM *vram;
+		//VideoRAM *vram;
 		
 		uint8 *RAM;
 		uint8 *ioRegs1;

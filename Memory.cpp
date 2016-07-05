@@ -89,7 +89,7 @@ void Memory::write(int addr, sint8 value){
 		*map[addr] = value;
 		
 		if(addr==0x4014){
-			doDMA(value);
+			//doDMA(value);
 		}
 	}
 }
@@ -160,7 +160,7 @@ int Memory::doDMA(uint8 value){
 	uint16 addr = value*0x100;
 	
 	for(int i =0; i<256; i++){
-		vram->SPRRAM[i] = *map[addr + i];
+		//vram->SPRRAM[i] = *map[addr + i];
 	}
 }
 	
