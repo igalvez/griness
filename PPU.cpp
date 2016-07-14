@@ -64,6 +64,8 @@ void PPU::renderBackground(){
 				tile_addr = readVRam(current_addr&0x07FF);
 				tile_low = readVRam(pattern_table_start+y);
 				tile_high = readVRam(pattern_table_start+y+8);
+
+				// TODO: NEED TO ADD LOGIC OF PALLETTES HERE 
 				temp_black_and_white = tile_low | tile_high;
 
 
