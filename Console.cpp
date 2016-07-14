@@ -8,7 +8,7 @@ Console::Console(){
 		
 void Console::loadGame(Cartridge cart){
 	memory->loadGame(cart);
-	cpu->initialize(memory);
+	cpu->initialize(memory,0xfffa);//, 0xFFFA);
 }
 
 void Console::reset(){
@@ -20,3 +20,4 @@ void Console::run(){
 	while(cpu->emulateCycle());
 }
 		
+
