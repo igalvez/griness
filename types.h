@@ -8,6 +8,10 @@
 #define VRAM_SIZE 16*1024
 #define CPU_CLOCK 1200
 #define PPU_CLOCK 1200
+#define PPU_SIZE 0x10000
+#define FRAME_HEIGHT 30
+#define FRAME_WIDTH 32
+#define BACKGROUND_PALETTE 0X3F00
 
 typedef unsigned char uint8;
 typedef unsigned short uint16;

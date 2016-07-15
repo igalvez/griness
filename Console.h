@@ -1,5 +1,6 @@
 #include "Memory.h"
 #include "CPU.h"
+#include "PPU.h"
 #include "Cartridge.h"
 #include "types.h"
 
@@ -10,6 +11,7 @@ class Console {
 	private:
 		Memory *memory;
 		CPU *cpu;
+		PPU *ppu;
 
 	public:
 		Console();

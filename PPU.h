@@ -1,4 +1,5 @@
 #include "types.h"
+#include "VideoRAM.h"
 
 #ifndef PPU_H
 #define PPU_H
@@ -16,9 +17,17 @@ class PPU {
 		uint8 write_toggle; // First or second write (should use only one bit)
 
 		uint8 x_pixel;
+		unsigned int screen_coord_x;
+		unsigned int screen_coord_y;
+		static unsigned int palette_map[64];
 		
 	public:
-		PPU(VideoRAM &RAM, Memory *mem);
+		PPU(Memory *mem);
 		uint8 readVRam(uint16 addr);
 		void writeVRam(uint16 addr, uint8 value);
-}
+		void executeNMI();
+		void renderBackground();
+};
+
+
+#endif
