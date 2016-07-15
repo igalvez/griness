@@ -1,6 +1,16 @@
 #include "PPU.h"
 #include "Memory.h"
 
+unsigned int PPU::palette_map[64] ={
+
+    //0      , 1       , 2       , 3       , 4       , 5       , 6       , 7       , 8       , 9       , A       , B       , C       , D       , E       , F
+	 0x757575, 0x271b8f, 0x0000ab, 0x47009f, 0xab0073, 0xab0013, 0xa70000, 0x7f0b00, 0x432f00, 0x004700, 0x005100, 0x003f17, 0x1b3f3f, 0x000000, 0x000000, 0x000000, // 0
+	 0xbcbcbc, 0x0073ef, 0x233bef, 0x8300f3, 0xbf00bf, 0xe7005b, 0xdb2b00, 0xcb4f0f, 0x8b7300, 0x009700, 0x00ab00, 0x00933b, 0x00838b, 0x000000, 0x000000, 0x000000, // 1
+	 0xffffff, 0x3fbfff, 0x5f97ff, 0xa78bfd, 0xf77bff, 0xff77b7, 0xff7763, 0xff9b3b, 0xf3bf3f, 0x83d313, 0x4fdf4b, 0x58f898, 0x00ebdb, 0x000000, 0x000000, 0x000000, // 2
+	 0xffffff, 0xabe7ff, 0xc7d7ff, 0xd7cbff, 0xffc7ff, 0xffc7db, 0xffbfb3, 0xffdbab, 0xffe7a3, 0xe3ffa3, 0xabf3fb, 0xb3ffcf, 0x9ffff3, 0x000000, 0x000000, 0x000000  // 3
+}
+
+
 PPU::PPU(VideoRAM &RAM, Memory *mem){
 	this->RAM = &RAM;
 	
@@ -47,6 +57,7 @@ void PPU::renderBackground(){
 	uint8 temp;
 	uint16 pattern_table_start;
 	uint16 row_start_addr;
+	int tile_counter = 0;
 
 	//uint16 ppuaddr = 0x2000 + (start_addr&0x03FF);
 	current_addr = start_addr;
@@ -61,19 +72,32 @@ void PPU::renderBackground(){
 			uint8 y = (current_addr&0x7000)>>12; // pixel line of tile
 			screen_coord_y = row + y;
 			for(int tile=0; tile<FRAME_WIDTH; tile++){
+				//Get upper palette bits from attribute table
+				attr_table_byte = 8*(tile_counter/128) + ((tile_counter%128)%32)%4;
+				attr_table_group = ((tile_counter%128)/32)/2 + ((tile_counter%128)%32)/2;
+
+				colour_idx = readVRam(attr_table_base+attr_table_byte);
+				if(attr_table_group==0)
+					colour_idx << 2;
+				else if(attr_table_group>1)
+					colour_idx >> 2*attr_table_group;
+				
 				tile_addr = readVRam(current_addr&0x07FF);
 				tile_low = readVRam(pattern_table_start+y);
 				tile_high = readVRam(pattern_table_start+y+8);
 
-				// TODO: NEED TO ADD LOGIC OF PALLETTES HERE 
-				temp_black_and_white = tile_low | tile_high;
-
+		
 
 				while(x_pixel<8){   // x fine scroll (pixel level)
-					temp = temp_black_and_white&0x01;
-					temp_black_and_white>>1;
+					temp = tile_high&0x01;
+					colour_idx&=0xC0;
+					//temp_black_and_white>>1;
+					colour_idx |= (temp<<1 | tile_low&0x01);
+					rgb_colour = palette_map[readVRam(BACKGROUND_PALETTE + colour_idx)];
+					tile_high>>1;
+					tile_low>>1;
 					screen_coord_x =  tile + x_pixel;
-					SDLBASE::renderPixel(temp,screen_coord_x,screen_coord_y); //TODO
+					SDLBASE::renderPixel(rgb_colour,screen_coord_x,screen_coord_y); //TODO
 					x_pixel++;
 				}
 
@@ -85,6 +109,7 @@ void PPU::renderBackground(){
 				else{
 					current_addr++;
 				}
+				tile_counter++;
 
 			}
 			//Set x back to initial coordinates so we can start at the beginning of next scanline
