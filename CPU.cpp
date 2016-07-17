@@ -654,11 +654,11 @@ void CPU::initialize(Memory *memP){
 
 void CPU::executeNMI(){
 	// pushes the processor status register and return address on the stack
-	uint8 pc_high = (cpuObj->pc+2 & 0xFF00) >> 8;
-	uint8 pc_low = (cpuObj->pc+2) & 0x00FF;
-	cpuObj->memory->write(cpuObj->sp--, pc_high);
-	cpuObj->memory->write(cpuObj->sp--, pc_low);
-	cpuObj->memory->write(cpuObj->sp--, P)
+	uint8 pc_high = (pc+2 & 0xFF00) >> 8;
+	uint8 pc_low = (pc+2) & 0x00FF;
+	memory->write(sp--, pc_high);
+	memory->write(sp--, pc_low);
+	memory->write(sp--, P);
 	pc = (memory->read(0xfffb)<<8) | memory->read(0xfffa);
 	//fetchOpcode();
 }
@@ -675,17 +675,19 @@ void CPU::branch(){
 	//pc = high + low;
 }
 
-int CPU::emulateCycles(int cycles=1){
+int CPU::emulateCycles(int cycles){
 	//int cycle = 0;
-	ppustatus = memory->read(0x2002);
-	ppuctrl = memory->read(0x2000);
+	uint8 ppustatus = memory->read(0x2002);
+	uint8 ppuctrl = memory->read(0x2000);
 	if((ppustatus&0x80 == 0x80) && (ppuctrl&0x80==0x80)){
 		executeNMI();
 	}
-	while(clock < cycles){
+	int cclock = 0;
+	while(cclock < cycles){
 		int ret = fetchOpcode();
+		cclock++;
 	}
-	clock = 0;
+	//clock = 0;
 }
 
 void CPU::reset(){

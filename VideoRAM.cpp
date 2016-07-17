@@ -1,7 +1,8 @@
 #include "VideoRAM.h"
 
+
 uint8 VideoRAM::readVRam(uint16 addr){
-	address = addr
+	uint16 address = addr;
 	if (addr>=0x4000){
 		address = addr%0x4000;
 	}
@@ -25,7 +26,7 @@ uint8 VideoRAM::readVRam(uint16 addr){
 }
 
 void VideoRAM::writeVRam(uint16 addr, uint8 value){
-	address = addr
+	uint16 address = addr;
 	if (addr>=0x4000){
 		address = addr%0x4000;
 	}
@@ -39,7 +40,7 @@ void VideoRAM::writeVRam(uint16 addr, uint8 value){
 	else if(address<0x3f20){
 		VRAM[address] = value;
 	}
-	else if((address<0x4000){
+	else if(address<0x4000){
 		VRAM[(address%0x3f20) + 0x3f00] = value;
 	}
 	//return VRAM[address];

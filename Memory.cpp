@@ -2,8 +2,9 @@
 
 
 
-Memory :: Memory(){
+Memory :: Memory(PPU *ppu){
 	// Internal RAM: 0000-0x7ffe
+	ppuobj = ppu;
 
 	RAM = new uint8[0x800];
 	int j;
@@ -68,7 +69,14 @@ uint8 Memory::read(uint16 addr){
 */
 
 uint8 Memory::read(uint16 addr){
+	//uint8 data;
+	if(addr==0x2007){
+		ppuobj->readData();
+	}
+	
 	return *map[addr];
+	
+	//return data;
 
 }
 
@@ -86,10 +94,19 @@ void Memory::write(int addr, sint8 value){
 		cartridge->mapper.write(this,addr,value);
 	}
 	else {
+		printf(" \n Memory write , addr %x\n",addr);
 		*map[addr] = value;
-		
-		if(addr==0x4014){
-			//doDMA(value);
+		if (addr==0x2005){
+			ppuobj->writeScroll();
+		}
+		else if(addr==0x2006){
+			ppuobj->writeAddr();
+		}
+		else if(addr==0x2007){
+			ppuobj->writeData();
+		}
+		else if(addr==0x4014){
+			ppuobj->doDMA(map,value);
 		}
 	}
 }
@@ -157,10 +174,12 @@ int Memory::switchBanks(int bank,uint8 mode){
 }
 			
 int Memory::doDMA(uint8 value){
-	uint16 addr = value*0x100;
-	
+	uint16 addr = value*100;
+	printf("START DMA ADDR = %d\n",addr);
 	for(int i =0; i<256; i++){
-		//vram->SPRRAM[i] = *map[addr + i];
+		printf("oi\n");
+		//ppuobj->SPRRAM[i] = 0x01;//*map[addr + i];
 	}
+	printf("FINISH DMA\n");
 }
 	

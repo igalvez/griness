@@ -2,13 +2,16 @@
 
 
 Console::Console(){
-	memory = new Memory();
+	
 	cpu = new CPU();
+	ppu = new PPU();
+	memory = new Memory(ppu);
 }
 		
 void Console::loadGame(Cartridge cart){
 	memory->loadGame(cart);
-	cpu->initialize(memory,0xfffa);//, 0xFFFA);
+	ppu->initialize(memory);
+	cpu->initialize(memory);//, 0xFFFA);
 }
 
 void Console::reset(){
@@ -17,7 +20,10 @@ void Console::reset(){
 
 void Console::run(){
 	reset();
-	while(cpu->emulateCycle());
+	while(1){
+		cpu->emulateCycles(1);
+		ppu->renderBackground();
+	}
 }
 		
 
