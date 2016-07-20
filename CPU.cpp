@@ -55,11 +55,12 @@ void adcF(CPU *cpuObj){ //
 
 	if(cpuObj->A==0){
 		cpuObj->status[Z]=1; // Set zero flag
-		cpuObj->status[N]=0;  // Unset negative flag
+		
 	}
 	else{
 		cpuObj->status[Z]=0;
 	}
+	cpuObj->status[N] = (cpuObj->A&0x80)>>7;
 }
 
 void andF(CPU *cpuObj){
@@ -72,25 +73,46 @@ void andF(CPU *cpuObj){
 		   ABSOLUTEY:#39, INDIRECTX:#21, INDIRECTY:#31 */
 		cpuObj->A 	&= cpuObj->memory->read(cpuObj->operand);
 	}
+	if(cpuObj->A==0){
+		cpuObj->status[Z]=1;
+	}
+	else{
+		cpuObj->status[Z]=0;
+	}
+	cpuObj->status[N] = (cpuObj->A&0x80)>>7;
 }
 
 void aslF(CPU *cpuObj){
-// Shift Left One Bit (M or A)
+// Shift Left One Bit (M or A) 
+	uint8 aux;
 	if(CPU::opcodeMode[cpuObj->opcode] == accumulator){ //#0A
-		cpuObj->setPflag(C,cpuObj->A >> 7);
+		//cpuObj->setPflag(C,cpuObj->A >> 7);
+		cpuObj->status[C] = (cpuObj->A&0x80)>>7;
 		cpuObj->A = cpuObj->A << 1;
+		aux = cpuObj->A;
 	}
 	else{
+		//uint8 aux;
 		/* ZPAGE:#06, ZPAGEX:#16, ABSOLUTE:#0E, ABSOULTEX:#1E */
-		cpuObj->setPflag(C, cpuObj->memory->read(cpuObj->operand) >> 7);
-		cpuObj->memory->write(cpuObj->operand, cpuObj->memory->read(cpuObj->operand) << 1);
+		//cpuObj->setPflag(C, cpuObj->memory->read(cpuObj->operand) >> 7);
+		aux = cpuObj->memory->read(cpuObj->operand);
+		cpuObj->status[C] = (aux&0x80)>>7;
+		cpuObj->memory->write(cpuObj->operand, aux<<1);
 	}
+	if(aux==0){
+		cpuObj->status[Z]=1;
+	}
+	else{
+		cpuObj->status[Z]=0;
+	}
+	
+	cpuObj->status[N] = (aux&0x80)>>7;
 }
 
 void bccF(CPU *cpuObj){ //#90
 // Branch on C Clear
 	int operand = cpuObj->operand;
-	if(cpuObj->getPflag(C)==0){
+	if(cpuObj->status[C]==0){
 		cpuObj->branch();;
 	}
 }
@@ -98,7 +120,7 @@ void bccF(CPU *cpuObj){ //#90
 void bcsF(CPU *cpuObj){ //#B0
 // Branch on C Set
 	int operand = cpuObj->operand;
-	if(cpuObj->getPflag(C)==1){
+	if(cpuObj->status[C]==1){
 		cpuObj->branch();;
 	}
 }
@@ -106,7 +128,7 @@ void bcsF(CPU *cpuObj){ //#B0
 void beqF(CPU *cpuObj){//#F0
 // Branch on Result Zero
 	int operand = cpuObj->operand;
-	if(cpuObj->getPflag(Z)==1){
+	if(cpuObj->status[Z]==1){
 		cpuObj->branch();;
 	}
 }
