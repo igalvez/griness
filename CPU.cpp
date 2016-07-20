@@ -33,19 +33,32 @@ enum Modes{
 
 void adcF(CPU *cpuObj){ // 
 // Add Memory to Accumulator with Carry
-	uint8 carry = cpuObj->getPflag(C);
+	//uint8 carry = cpuObj->getPflag(C)
+	uint16 res;
 	if(CPU::opcodeMode[cpuObj->opcode] == immediate){ //#69
-		if((cpuObj->A + cpuObj->operand + carry)>0xFF){
-			cpuObj->A += cpuObj->operand + carry;
-		}
+		res = cpuObj->A + cpuObj->operand + status[C];
 	}
 	else{  
 	/* ZPAGE:#65, ZPAGEX:#75, ABSOLUTE:#6D, ABSOLUTEX:#7D
 	   ABSOLUTEY:#79, INDIRECTX:#61, INDIRECTY:#71
 	*/
-		if((cpuObj->A + cpuObj->memory->read(cpuObj->operand) + carry)>0xFF){
-			cpuObj->A += cpuObj->memory->read(cpuObj->operand) + carry;
-		}
+	    res = cpuObj->A + cpuObj->memory->read(cpuObj->operand) + status[C];
+	}
+
+	if(res>0x00FF){ // overflow
+		cpuObj->status[V] = 1;
+	}
+	else{
+		cpuObj->status[V] = 0;
+	}
+	cpuObj->A = res;
+
+	if(cpuObj->A==0){
+		cpuObj->status[Z]=1; // Set zero flag
+		cpuObj->status[N]=0;  // Unset negative flag
+	}
+	else{
+		cpuObj->status[Z]=0;
 	}
 }
 
@@ -526,6 +539,11 @@ CPU::CPU(){
 	Y = 0;
 	P = 0;
 	operand = 0;
+	for(int i=0; i<8; i++){
+		status[i]=0;
+	}
+	
+
 	
 }
 
@@ -649,6 +667,13 @@ void CPU::initialize(Memory *memP){
 	memory = memP;
 	reset_vector = (memory->read(0xfffd)<<8) | memory->read(0xfffc);
 	printf("RESET VECTOR = %x\n", reset_vector);
+	printf("N=%d\n",N); //7
+	printf("V=%d\n",V); //6
+	printf("B=%d\n",B); //4
+	printf("D=%d\n",D); //3
+	printf("I=%d\n",I); //2
+	printf("Z=%d\n",Z); //1
+	printf("C=%d\n",C); //0
 	reset();
 }
 
@@ -679,7 +704,7 @@ int CPU::emulateCycles(int cycles){
 	//int cycle = 0;
 	uint8 ppustatus = memory->read(0x2002);
 	uint8 ppuctrl = memory->read(0x2000);
-	if((ppustatus&0x80 == 0x80) && (ppuctrl&0x80==0x80)){
+	if((ppustatus&0x80 == 0x80)){// && (ppuctrl&0x80==0x80)){
 		executeNMI();
 	}
 	int cclock = 0;
@@ -691,14 +716,15 @@ int CPU::emulateCycles(int cycles){
 }
 
 void CPU::reset(){
-	//pc = reset_vector;
-	pc = (memory->read(0xfffb)<<8) | memory->read(0xfffa);
+	pc = reset_vector;
+	//pc = (memory->read(0xfffb)<<8) | memory->read(0xfffa);
 }
 
 int CPU::fetchOpcode(){
 
 	int mode;
 	//int addr = (memory->read(0xFFFF)<<8) | memory->read(0xFFFE);
+	uint8 ppuctrl = memory->read(0x2000);
 	opcode = *memory->map[pc];
 	mode = opcodeMode[opcode];
 	printf("OPCODE = %x \n", opcode);
@@ -707,12 +733,13 @@ int CPU::fetchOpcode(){
 	printf("P = %x \n", P);
 	printf("A = %x \n", A);
 	printf("banks number = %d \n", memory->cartridge->n_banks);
-	printf("0xfffe = %x \n", memory->read(0xfffe));
-	printf("0xffff = %x \n", memory->read(0xffff));
-	printf("0xfffc = %x \n", memory->read(0xfffc));
-	printf("0xfffd = %x \n", memory->read(0xfffd));
-
-
+	printf("chr banks number = %d \n", memory->cartridge->chr_banks);
+	//printf("0xfffe = %x \n", memory->read(0xfffe));
+	//printf("0xffff = %x \n", memory->read(0xffff));
+	//printf("0xfffc = %x \n", memory->read(0xfffc));
+	//printf("0xfffd = %x \n", memory->read(0xfffd));
+	printf("PPUCONTROL = %x\n", ppuctrl);
+	printf("PPUstatusL = %x\n", memory->read(0x2002));
 	/*
 
 	accumulator,
@@ -867,7 +894,7 @@ int CPU::fetchOpcode(){
 			nmode = 0;
 			cout << "NO MODE!  ";
 			cout << "nmode = " << nmode << "\n";
-			pc+=1;
+			//pc+=1;
 			
 	}
 	cout << "nmode = " << nmode << "\n";

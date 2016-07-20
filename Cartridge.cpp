@@ -22,15 +22,18 @@ bool Cartridge::loadGame(string gameName){
 	fclose(newgame);
 	getMapper();
 	n_banks = gameROM[4];
+	chr_banks = gameROM[5];
 	return true;
 }
 
 
 void Cartridge::getMapper(){
 
-	int mapper_number = (gameROM[7] & 0xF0) | ((gameROM[6] & 0xF0) >> 4);	
+	mapper_number = (gameROM[7] & 0xF0) | ((gameROM[6] & 0xF0) >> 4);	
 	
 	switch(mapper_number){
+		//case 0:
+			//mapper = NULL;
 		case 1:
 			mapper = MMC1();
 		break;

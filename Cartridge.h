@@ -15,8 +15,10 @@ using namespace std;
 class Cartridge {
 	public:
 		int n_banks;
+		int chr_banks;
 		uint8 *gameROM;
 		Mapper mapper;
+		uint8 mapper_number;
 		bool loadGame(string gameName);
 		void getMapper();
 };

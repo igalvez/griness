@@ -8,13 +8,13 @@ using namespace std;
 #define CPU_H
 
 enum Pflags{
-	C,
-	Z,
-	I,
-	D,
-	B,
-	V=6,
-	N
+	C,    // Carry
+	Z,    // Zero
+	I,    // Interrupt inhibit, 0: IRQ and NMI get through, 1: just NMI
+	D,    // Decimal
+	B,    // Break flag? not used
+	V=6,  // Overflow
+	N     // Negative
 };
 	
 
@@ -26,6 +26,7 @@ class CPU{
 		uint8 X;  // index register X
 		uint8 Y;  // index register Y
 		uint8 P;  // Processor status - <NV-BDIZC>
+		uint8 status[8];
 
 		//flags
 		/*

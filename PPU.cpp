@@ -22,8 +22,12 @@ void PPU::initialize(Memory *mem){
 	
 	for (int i=0; i<8; i++){
 		regs[i] = mem->map[0x2000 + i];
+		*regs[i] = 0;
 	}
 	dmaReg = mem->map[0x4014];
+	dmaReg = 0;
+	//*regs[2] = 0x9F;
+	
 }
 
 
@@ -74,6 +78,8 @@ void PPU::writeVRam(uint16 addr, uint8 value){
 
 void PPU::executeNMI(){
 	x_pixel = 0;
+	printf("\n EXECUTE NMI \n");
+	*regs[2] = *regs[2]|0x80;
 }
 
 
@@ -127,10 +133,20 @@ void PPU::readData(){
 void PPU::doDMA(uint8 **map, uint8 value){
 	uint16 addr = value*0x100;
 	for(int i =0; i<256; i++){
-		printf("oi\n");
+		
 		SPRRAM[i] = *map[addr + i];
+		printf("addr:%x, Data: %x\n",(addr+i),SPRRAM[i]);
 	}
 	printf("FINISH DMA\n");
+}
+
+
+void PPU::show_pattern_table(){
+	printf("name table\n");
+	for(int i=0;i<CHR_BANK_SIZE;i++){
+		printf("addr: %x, data:%x\n",i,VRAM[i]);
+	}
+
 }
 
 void PPU::renderBackground(){
@@ -160,8 +176,10 @@ void PPU::renderBackground(){
 	//uint16 ppuaddr = 0x2000 + (start_addr&0x03FF);
 	current_addr = start_addr;
 
+	
 	//uint16 temp;
 	printf("\n\n\nRENDER BACKGROUND\n\n\n");
+	show_pattern_table();
 	for(int row=0; row<FRAME_HEIGHT; row++){
 		//nametable_addr = current_addr&0x07FF;
 		
@@ -169,12 +187,12 @@ void PPU::renderBackground(){
 		//for(int scanline=0; scanline<8; scanline++){//8 scanlines per tile row
 			uint8 y = (current_addr&0x7000)>>12; // pixel line of tile
 			screen_coord_y = row + y;
-			//printf("\n");
+			printf("\n");
 			for(int tile=0; tile<FRAME_WIDTH; tile++){
 				//Get upper palette bits from attribute table
 				attr_table_byte = 8*(tile_counter/128) + ((tile_counter%128)%32)%4;
 				attr_table_group = ((tile_counter%128)/32)/2 + ((tile_counter%128)%32)/2;
-
+				
 				if(y==0){
 					//printf("0");
 				}
@@ -197,10 +215,10 @@ void PPU::renderBackground(){
 					colour_idx |= (temp<<1 | tile_low&0x01);
 					rgb_colour = palette_map[readVRam(BACKGROUND_PALETTE + colour_idx)];
 					
-					//if(temp2&0x01)
-						//printf("0");
-					//else
-						//printf(" ");
+					if(temp2&0x01)
+						printf("0");
+					else
+						printf(" ");
 					
 					tile_high>>1;
 					tile_low>>1;
@@ -245,6 +263,8 @@ void PPU::renderBackground(){
 		}
 
 	}
+
+	executeNMI();
 }
 
 

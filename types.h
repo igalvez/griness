@@ -4,7 +4,8 @@
 
 #define GAME_MEM_REGION
 #define ROM_LIMIT 
-#define BANK_SIZE 16*1024
+#define PRG_BANK_SIZE 16*1024
+#define CHR_BANK_SIZE 8*1024
 #define VRAM_SIZE 16*1024
 #define CPU_CLOCK 1200
 #define PPU_CLOCK 1200

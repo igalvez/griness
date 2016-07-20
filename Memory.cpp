@@ -90,11 +90,11 @@ int Memory::read(uint16 addr, int nbytes){
 }
 
 void Memory::write(int addr, sint8 value){
-	if(addr>=0x8000){ //ROM, give control to mapper
+	if(cartridge->mapper_number && addr>=0x8000){ //ROM, give control to mapper
 		cartridge->mapper.write(this,addr,value);
 	}
 	else {
-		printf(" \n Memory write , addr %x\n",addr);
+		printf(" \n Memory write value %x, addr %x\n",value,addr);
 		*map[addr] = value;
 		if (addr==0x2005){
 			ppuobj->writeScroll();
@@ -128,14 +128,26 @@ void Memory::write(int addr, int value, int nbytes){
 void Memory::loadGame(Cartridge &cart){
 	cartridge = &cart;
 	int j = 0;
-	int lastBank = (cartridge->n_banks - 1)*BANK_SIZE + 16;
+	int lastBank = (cartridge->n_banks - 1)*PRG_BANK_SIZE + 16;
+	//int chr_begin = (cartridge->n_banks)*PRG_BANK_SIZE + 16;
 	
-	for(int i=0; i<BANK_SIZE + 16; i++){
+	//transfering PRG data
+	
+	for(int i=0; i<PRG_BANK_SIZE + 16; i++){
 		*map[i+0x8000] = cartridge->gameROM[i+16];
 	}
 
-	for(int i=0; i<BANK_SIZE; i++){
+	
+	for(int i=0; i<PRG_BANK_SIZE; i++){
 		*map[i+0xC000] = cartridge->gameROM[i+lastBank];
+	}
+
+	//transfering CHR data
+	if(cartridge->chr_banks>0){
+		int chr_begin = (cartridge->n_banks)*PRG_BANK_SIZE + 16;
+		for(int i=0; i<CHR_BANK_SIZE; i++){
+			ppuobj->writeVRam(i,cartridge->gameROM[i+chr_begin]);
+		}
 	}
 
 	//int z = cartridge->gameROM[lastBank + BANK_SIZE*4];

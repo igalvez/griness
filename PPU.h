@@ -4,6 +4,7 @@
 #ifndef PPU_H
 #define PPU_H
 
+
 class Memory;
 class PPU {
 	private:
@@ -40,6 +41,9 @@ class PPU {
 		void writeScroll();
 		void writeData();
 		void readData();
+
+
+		void show_pattern_table();
 };
 
 
