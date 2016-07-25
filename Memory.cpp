@@ -70,15 +70,22 @@ uint8 Memory::read(uint16 addr){
 
 uint8 Memory::read(uint16 addr){
 	//uint8 data;
+	uint8 data;
 	if(addr==0x2007){
 		ppuobj->readData();
 	}
-	
-	return *map[addr];
+	data = *map[addr];
+	if(addr==0x2002){
+		printf("READ %x, data= %x\n",addr,data);
+		*map[0x2002]&=0x7f; //CLEAR VBLANK Flag
+	}
+	return data;
 	
 	//return data;
 
 }
+
+
 
 int Memory::read(uint16 addr, int nbytes){
 	int aux = 0;

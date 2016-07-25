@@ -36,13 +36,13 @@ void adcF(CPU *cpuObj){ //
 	//uint8 carry = cpuObj->getPflag(C)
 	uint16 res;
 	if(CPU::opcodeMode[cpuObj->opcode] == immediate){ //#69
-		res = cpuObj->A + cpuObj->operand + status[C];
+		res = cpuObj->A + cpuObj->operand + cpuObj->status[C];
 	}
 	else{  
 	/* ZPAGE:#65, ZPAGEX:#75, ABSOLUTE:#6D, ABSOLUTEX:#7D
 	   ABSOLUTEY:#79, INDIRECTX:#61, INDIRECTY:#71
 	*/
-	    res = cpuObj->A + cpuObj->memory->read(cpuObj->operand) + status[C];
+	    res = cpuObj->A + cpuObj->memory->read(cpuObj->operand) + cpuObj->status[C];
 	}
 
 	if(res>0x00FF){ // overflow
@@ -52,15 +52,18 @@ void adcF(CPU *cpuObj){ //
 		cpuObj->status[V] = 0;
 	}
 	cpuObj->A = res;
+	//TODO: update carry flag
 
-	if(cpuObj->A==0){
+	cpuObj->setSignalFlags(res);
+	
+/*if(cpuObj->A==0){
 		cpuObj->status[Z]=1; // Set zero flag
 		
 	}
 	else{
 		cpuObj->status[Z]=0;
 	}
-	cpuObj->status[N] = (cpuObj->A&0x80)>>7;
+	cpuObj->status[N] = (cpuObj->A&0x80)>>7;*/
 }
 
 void andF(CPU *cpuObj){
@@ -73,13 +76,7 @@ void andF(CPU *cpuObj){
 		   ABSOLUTEY:#39, INDIRECTX:#21, INDIRECTY:#31 */
 		cpuObj->A 	&= cpuObj->memory->read(cpuObj->operand);
 	}
-	if(cpuObj->A==0){
-		cpuObj->status[Z]=1;
-	}
-	else{
-		cpuObj->status[Z]=0;
-	}
-	cpuObj->status[N] = (cpuObj->A&0x80)>>7;
+	cpuObj->setSignalFlags(cpuObj->A);
 }
 
 void aslF(CPU *cpuObj){
@@ -99,21 +96,14 @@ void aslF(CPU *cpuObj){
 		cpuObj->status[C] = (aux&0x80)>>7;
 		cpuObj->memory->write(cpuObj->operand, aux<<1);
 	}
-	if(aux==0){
-		cpuObj->status[Z]=1;
-	}
-	else{
-		cpuObj->status[Z]=0;
-	}
-	
-	cpuObj->status[N] = (aux&0x80)>>7;
+	cpuObj->setSignalFlags(aux);
 }
 
 void bccF(CPU *cpuObj){ //#90
 // Branch on C Clear
 	int operand = cpuObj->operand;
 	if(cpuObj->status[C]==0){
-		cpuObj->branch();;
+		cpuObj->branch();
 	}
 }
 
@@ -121,7 +111,7 @@ void bcsF(CPU *cpuObj){ //#B0
 // Branch on C Set
 	int operand = cpuObj->operand;
 	if(cpuObj->status[C]==1){
-		cpuObj->branch();;
+		cpuObj->branch();
 	}
 }
 
@@ -129,7 +119,7 @@ void beqF(CPU *cpuObj){//#F0
 // Branch on Result Zero
 	int operand = cpuObj->operand;
 	if(cpuObj->status[Z]==1){
-		cpuObj->branch();;
+		cpuObj->branch();
 	}
 }
 
@@ -139,24 +129,25 @@ void bitF(CPU *cpuObj){
 	uint8 memV = cpuObj->memory->read(cpuObj->operand);
 	int operand = cpuObj->operand;
 	if((cpuObj->A & memV) == 0){
-		cpuObj->setPflag(Z,1);
+		cpuObj->status[Z]=1;
 	}
 	else{
-		cpuObj->setPflag(N,memV >> 7);
-		cpuObj->setPflag(V,(memV & 0x40) >> 6);
+		cpuObj->status[N] = memV>>7;
+		cpuObj->status[V] = (memV&0x40)>>6;
 	}
 }
 
 void bmiF(CPU *cpuObj){ //#30
 // Branch on Result Minus
-	if(cpuObj->getPflag(N)==1){
+	printf("\n\nBMI \n\n");
+	if(cpuObj->status[N]==1){
 		cpuObj->branch();
 	}
 }
 
 void bneF(CPU *cpuObj){ //#D0
 // Branch on Result not Zero
-	if(cpuObj->getPflag(Z)==0){
+	if(cpuObj->status[Z]==0){
 		cpuObj->branch();
 	}
 }
@@ -164,7 +155,7 @@ void bneF(CPU *cpuObj){ //#D0
 void bplF(CPU *cpuObj){ //#10
 // Branch on Result Plus
 	printf("BPL operand %d \n", cpuObj->operand); 
-	if(cpuObj->getPflag(N)==0){
+	if(cpuObj->status[N]==0){
 		cpuObj->branch();
 	}
 }
@@ -179,44 +170,44 @@ void brkF(CPU *cpuObj){ //#00
 	uint8 pc_low = cpuObj->pc+2 & 0x00FF;
 	cpuObj->memory->write(cpuObj->sp--, pc_high);
 	cpuObj->memory->write(cpuObj->sp--, pc_low);
-	cpuObj->memory->write(cpuObj->sp--, cpuObj->P);
+	cpuObj->push_status_to_Stack();//memory->write(cpuObj->sp--, cpuObj->P);
 	cpuObj->pc = ((cpuObj->memory->read(0xfffe)<<8) | cpuObj->memory->read(0xffff)) -1;
-	cpuObj->setPflag(B,1);
+	cpuObj->status[I] = 1;
 	//cpuObj->pc = cpuObj->memory->read(cpuObj->operand) + PRG_ADDR - 3;
 }
 
 void bvcF(CPU *cpuObj){ //#50
 // Branch on Overflow Clear
-	if(cpuObj->getPflag(V)==0){
+	if(cpuObj->status[V]==0){
 		cpuObj->branch();
 	}
 }
 
 void bvsF(CPU *cpuObj){ //#70
 // Branch on Overflow Set
-	if(cpuObj->getPflag(V)==1){
+	if(cpuObj->status[V]==1){
 		cpuObj->branch();
 	}
 }
 
 void clcF(CPU *cpuObj){ //#18
 // Clear C Flag
-	cpuObj->setPflag(C,0);
+	cpuObj->status[C]=0;
 }
 
 void cldF(CPU *cpuObj){ //#D8
 // Clear Decimal Mode
-	cpuObj->setPflag(D,0);
+	cpuObj->status[D]=0;
 }
 
 void cliF(CPU *cpuObj){ //#58
 // Clear interrupt Disable Bit
-	cpuObj->setPflag(I,0);
+	cpuObj->status[I]=0;
 }
 
 void clvF(CPU *cpuObj){ //#B8
 // Clear Overflow Flag
-	cpuObj->setPflag(V,0);
+	cpuObj->status[V]=0;
 }
 
 void cmpF(CPU *cpuObj){
@@ -242,17 +233,40 @@ void decF(CPU *cpuObj){
 // Decrement M by One
 /* ZPAGE:#C6, ZPAGEX:#D6, ABSOLUTE:#CE, ABSOLUTEX:#DE */ 
 	uint8 memV = cpuObj->memory->read(cpuObj->operand);
+	
+	if(memV-1==0){
+		cpuObj->status[Z]=1;
+	}
+	else{
+		cpuObj->status[Z]=0;
+	}
 	cpuObj->memory->write(cpuObj->operand, memV - 1);
+	cpuObj->status[N] = (memV-1)>>7;
+	
 }
 
 void dexF(CPU *cpuObj){ //#CA
 // Decrement X by One
 	cpuObj->X -= 1;
+	if(cpuObj->X==0){
+		cpuObj->status[Z]=1;
+	}
+	else{
+		cpuObj->status[Z]=0;
+	}
+	cpuObj->status[N] = (cpuObj->X)>>7;
 }
 
 void deyF(CPU *cpuObj){ //#88
 //  Decrement Y by One
 	cpuObj->Y -= 1;
+	if(cpuObj->Y==0){
+		cpuObj->status[Z]=1;
+	}
+	else{
+		cpuObj->status[Z]=0;
+	}
+	cpuObj->status[N] = (cpuObj->Y)>>7;
 }
 
 void eorF(CPU *cpuObj){
@@ -268,6 +282,7 @@ void eorF(CPU *cpuObj){
 	}
 
 	cpuObj->A ^= number;
+	cpuObj->setSignalFlags(cpuObj->A);
 }
 
 void incF(CPU *cpuObj){ 
@@ -275,16 +290,19 @@ void incF(CPU *cpuObj){
 /* ZPAGE:#E6, ZPAGEX:#F6, ABSOLUTE:#EE, ABSOLUTEX:#FE */ 
 	int memV = cpuObj->memory->read(cpuObj->operand);
 	cpuObj->memory->write(cpuObj->operand, memV + 1);
+	cpuObj->setSignalFlags(memV+1);
 }
 
 void inxF(CPU *cpuObj){ //#E8
 // Increment X by One
 	cpuObj->X += 1;
+	cpuObj->setSignalFlags(cpuObj->X);
 }
 
 void inyF(CPU *cpuObj){ //#C8
 // Increment Y by One
 	cpuObj->Y += 1;
+	cpuObj->setSignalFlags(cpuObj->Y);
 }
 
 void jmpF(CPU *cpuObj){ 
@@ -318,10 +336,12 @@ void ldaF(CPU *cpuObj){
 		printf("cpuOBJ->A = %x\n", cpuObj->A);
 	}
 	else{
-		printf("MEM TO A = %x",cpuObj->memory->read(cpuObj->operand)); 
-
+		
 		cpuObj->A = cpuObj->memory->read(cpuObj->operand);
+		printf("MEM TO A = %x",cpuObj->A); 
+
 	}
+	cpuObj->setSignalFlags(cpuObj->A);
 
 }
 
@@ -334,6 +354,7 @@ void ldxF(CPU *cpuObj){
 	else{
 		cpuObj->X = cpuObj->memory->read(cpuObj->operand);
 	}
+	cpuObj->setSignalFlags(cpuObj->X);
 }
 
 void ldyF(CPU *cpuObj){
@@ -345,6 +366,7 @@ void ldyF(CPU *cpuObj){
 	else{
 		cpuObj->Y = cpuObj->memory->read(cpuObj->operand);
 	}
+	cpuObj->setSignalFlags(cpuObj->Y);
 }
 
 void lsrF(CPU *cpuObj){
@@ -353,12 +375,15 @@ void lsrF(CPU *cpuObj){
 	if(CPU::opcodeMode[cpuObj->opcode] == accumulator){
 		cpuObj->setPflag(C,(cpuObj->A & 0x01));
 		cpuObj->A = cpuObj->A >> 1;
+		cpuObj->setSignalFlags(cpuObj->A);
 	}
 	else{
 		int memV = cpuObj->memory->read(cpuObj->operand);
 		cpuObj->setPflag(C,(memV & 0x01));
 		cpuObj->memory->write(cpuObj->operand, memV >> 1);
+		cpuObj->setSignalFlags(memV>>1);
 	}
+	
 }
 
 void nopF(CPU *cpuObj){ //#EA
@@ -376,6 +401,7 @@ void oraF(CPU *cpuObj){
 	else{
 		cpuObj->A |= cpuObj->memory->read(cpuObj->operand);
 	}
+	cpuObj->setSignalFlags(cpuObj->A);
 }
 
 
@@ -387,7 +413,7 @@ void phaF(CPU *cpuObj){ //#48
 
 void phpF(CPU *cpuObj){ //#08
 // Push Processor Status on Stack
-	cpuObj->memory->write(cpuObj->sp--, cpuObj->P);
+	cpuObj->push_status_to_Stack();//memory->write(cpuObj->sp--, cpuObj->P);
 }
 
 void plaF(CPU *cpuObj){ //#68
@@ -397,7 +423,14 @@ void plaF(CPU *cpuObj){ //#68
 
 void plpF(CPU *cpuObj){ //#28
 // Pull Processor Status from Stack
-	cpuObj->P = cpuObj->memory->read(++cpuObj->sp);
+	//cpuObj->P 
+	uint8 p = cpuObj->memory->read(++cpuObj->sp);// <NV-BDIZC>
+	for (int i=0;i<8;i++){
+		if(i==5){
+			continue;
+		}
+		cpuObj->status[i] = (p>>i)&0x01;
+	}
 }
 
 void rolF(CPU *cpuObj){ 
@@ -407,18 +440,22 @@ void rolF(CPU *cpuObj){
 	if(CPU::opcodeMode[cpuObj->opcode] == accumulator){
 		aux = (cpuObj->A & 0x80);
 		cpuObj->A = cpuObj->A << 1;
-		cpuObj->A |= cpuObj->getPflag(C);				
+		cpuObj->A |= cpuObj->status[C];
+		cpuObj->setSignalFlags(cpuObj->A);
+						
 	}
 	else{
 		uint8 memV = cpuObj->memory->read(cpuObj->operand);	
-		int n = memV << 1 | cpuObj->getPflag(C);
+		int n = memV << 1 | cpuObj->status[C];
 		aux = (memV & 0x80);
 		cpuObj->memory->write(cpuObj->operand, n);
-		
+		cpuObj->setSignalFlags(n);
 		//*cpuObj->memory->write(cpuObj->operand] = memV << 1;
 		//*cpuObj->memory->map[cpuObj->operand] |= cpuObj->C;		
 	}
-	cpuObj->setPflag(C,aux);
+	//cpuObj->setPflag(C,aux);
+	cpuObj->status[C] = aux>>7;
+	
 }
 
 void rorF(CPU *cpuObj){
@@ -428,24 +465,27 @@ void rorF(CPU *cpuObj){
 	if(CPU::opcodeMode[cpuObj->opcode] == accumulator){
 		aux = (cpuObj->A & 0x01);
 		cpuObj->A = cpuObj->A >> 1;
-		cpuObj->A |= (cpuObj->getPflag(C) << 7);
+		cpuObj->A |= (cpuObj->status[C]<< 7);
 	}
 	else{
 		int memV = cpuObj->memory->read(cpuObj->operand);
-		int n = (cpuObj->getPflag(C) << 7) | (memV >> 1);
+		int n = (cpuObj->status[C]<< 7) | (memV >> 1);
 		aux = (memV & 0x01);
 		cpuObj->memory->write(cpuObj->operand, n);
 		//*cpuObj->memory->map[cpuObj->operand] |= (cpuObj->C << 7);
 	}
-	cpuObj->setPflag(C,aux);
+	cpuObj->status[C] = aux;
 }
 void rtiF(CPU *cpuObj){ //#40
 // Return from Interrupt
+	uint8 P;
 	printf("\nSTACK:\n");
 	for (int i=cpuObj->sp; i<=0x1ff; i++){
 		printf("%x = %x\n", i, cpuObj->memory->read(i));
 	}
-	cpuObj->P = cpuObj->memory->read(++cpuObj->sp);
+	//P = cpuObj->memory->read(++cpuObj->sp);
+	//for(int i=0;i<8;i++){
+	cpuObj->pop_status_from_Stack();
 	cpuObj->pc = cpuObj->memory->read(++cpuObj->sp,2);
 	cpuObj->sp++;
 }
@@ -467,22 +507,34 @@ void sbcF(CPU *cpuObj){
 	else{
 		number = cpuObj->memory->read(cpuObj->operand);
 	}
-	cpuObj->A -= (number + cpuObj->getPflag(C));
+	uint16 res = cpuObj->A - (number + cpuObj->status[C]);
+
+	//TODO: VER DIFF ENTRE Carry e OVERFLOW	(NESSE CASO CARRY EH BORROW
+	if(res>0xFF){
+		cpuObj->status[C] = 1;
+		cpuObj->status[V] = 1;
+	}
+	else{
+		cpuObj->status[C] = 1;
+		cpuObj->status[V] = 1;
+	}
+	cpuObj->A = res;
+	cpuObj->setSignalFlags(cpuObj->A);
 }
 
 void secF(CPU *cpuObj){ //#38	
 // Set Carry Flag
-	cpuObj->setPflag(C,1);
+	cpuObj->status[C]=1;
 }
 
 void sedF(CPU *cpuObj){ //#F8
 // Set Decimal Mode
-	cpuObj->setPflag(D,1);
+	cpuObj->status[D]=1;
 }
 
 void seiF(CPU *cpuObj){ //#78
 // Set Interrupt Disable Status
-	cpuObj->setPflag(I,1);
+	cpuObj->status[I]=1;
 }
 
 void staF(CPU *cpuObj){ 
@@ -507,31 +559,37 @@ void styF(CPU *cpuObj){
 void taxF(CPU *cpuObj){ //#AA
 // Transfer A to X
 	cpuObj->X = cpuObj->A;
+	cpuObj->setSignalFlags(cpuObj->X);
 }
 
 void tayF(CPU *cpuObj){ //#A8
 // Transfer A to Y
 	cpuObj->Y = cpuObj->A;
+	cpuObj->setSignalFlags(cpuObj->Y);
 }
 
 void tsxF(CPU *cpuObj){ //#BA
 // Transfer Stack Pointer to X
 	cpuObj->X = cpuObj->sp;
+	cpuObj->setSignalFlags(cpuObj->X);
 }
 
 void txaF(CPU *cpuObj){ //#8A
 // Transfer X to A
 	cpuObj->A = cpuObj->X;
+	cpuObj->setSignalFlags(cpuObj->A);
 }
 
 void txsF(CPU *cpuObj){ //#9A
 //Transfer X to Stack Pointer
-	cpuObj->sp = cpuObj->X;
+	cpuObj->sp = 0x100 + cpuObj->X;
+	cpuObj->setSignalFlags(cpuObj->A);
 }
 
 void tyaF(CPU *cpuObj){ //#98
 // Transfer Y to A
 	cpuObj->A = cpuObj->Y;
+	cpuObj->setSignalFlags(cpuObj->A);
 	
 }
 
@@ -570,6 +628,7 @@ CPU::CPU(){
 }
 
 void CPU::compareElements(uint8 reg){
+	//TODO: SET CARRY FLAG, WHEN SHOULD IT BE SET HERE?
 	uint8 number;
 	if(opcodeMode[opcode] == immediate){
 		number = operand;
@@ -579,16 +638,16 @@ void CPU::compareElements(uint8 reg){
 	}
 	setPflag(C,0);
 	if((reg - number)<0){
-		setPflag(N,1);
-		setPflag(Z,0);
+		status[N]=1;
+		status[Z]=0;
 	}
 	else if((reg - number) == 0){
-		setPflag(N,0);
-		setPflag(Z,1);	
+		status[N]=0;
+		status[Z]=1;	
 	}
 	else{
-		setPflag(N,0);
-		setPflag(Z,0);
+		status[N]=0;
+		status[Z]=0;
 	}
 }
 
@@ -654,7 +713,7 @@ int CPU::opcodeMode[256] = {
 	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15, 15,  5,  5, 15,  // 0
 	 9, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 1
 	 5, 10, 15, 15,  2,  2,  2, 15,  8,  1,  0, 15,  5,  5,  5, 15,  // 2
-	 8, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 3
+	 9, 11, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 3
 	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15,  5,  5,  5, 15,  // 4
 	 8,  7, 15, 15, 15,  3,  3, 15,  8,  7, 15, 15, 15,  6,  6, 15,  // 5
 	 8, 10, 15, 15, 15,  2,  2, 15,  8,  1,  0, 15, 12,  5,  5, 15,  // 6
@@ -705,7 +764,9 @@ void CPU::executeNMI(){
 	uint8 pc_low = (pc+2) & 0x00FF;
 	memory->write(sp--, pc_high);
 	memory->write(sp--, pc_low);
-	memory->write(sp--, P);
+	push_status_to_Stack();
+	//memory->write(sp--, P);
+	printf("\nNMI CPU HERE \n\n");
 	pc = (memory->read(0xfffb)<<8) | memory->read(0xfffa);
 	//fetchOpcode();
 }
@@ -724,11 +785,13 @@ void CPU::branch(){
 
 int CPU::emulateCycles(int cycles){
 	//int cycle = 0;
-	uint8 ppustatus = memory->read(0x2002);
+	uint8 ppustatus = *memory->map[0x2002];
 	uint8 ppuctrl = memory->read(0x2000);
-	if((ppustatus&0x80 == 0x80)){// && (ppuctrl&0x80==0x80)){
+	if((ppustatus&0x80==0x80)&& (ppuctrl&0x80==0x80)){
+		printf("PRE EXECUTE NMI\n");
 		executeNMI();
 	}
+	printf("\nPPUSTATUS emulate cycle = %x\n",ppustatus);
 	int cclock = 0;
 	while(cclock < cycles){
 		int ret = fetchOpcode();
@@ -740,6 +803,32 @@ int CPU::emulateCycles(int cycles){
 void CPU::reset(){
 	pc = reset_vector;
 	//pc = (memory->read(0xfffb)<<8) | memory->read(0xfffa);
+}
+
+void CPU::setSignalFlags(uint8 value){
+	if(value==0){
+		status[Z]=1;
+	}
+	else{
+		status[Z]=0;
+	}
+	status[N] = (value)>>7;
+}
+void CPU::push_status_to_Stack(){
+	uint8 P; //cpuObj->memory->write(cpuObj->sp--, cpuObj->P);
+	for(int i=0;i<8;i++){
+		P |= (status[i]<<i);
+	}
+	memory->write(sp--, P);
+}
+
+void CPU::pop_status_from_Stack(){
+	uint8 P = memory->read(++sp);
+	for(int i=0;i++;i<8){
+		if(i!=5){
+			status[i] = (P>>i)&0x01;
+		}
+	}
 }
 
 int CPU::fetchOpcode(){
@@ -754,6 +843,8 @@ int CPU::fetchOpcode(){
 	printf("sp = %x \n", sp);
 	printf("P = %x \n", P);
 	printf("A = %x \n", A);
+	printf("X = %x \n",X);
+	printf("Y = %x \n",Y);
 	printf("banks number = %d \n", memory->cartridge->n_banks);
 	printf("chr banks number = %d \n", memory->cartridge->chr_banks);
 	//printf("0xfffe = %x \n", memory->read(0xfffe));
@@ -761,7 +852,14 @@ int CPU::fetchOpcode(){
 	//printf("0xfffc = %x \n", memory->read(0xfffc));
 	//printf("0xfffd = %x \n", memory->read(0xfffd));
 	printf("PPUCONTROL = %x\n", ppuctrl);
-	printf("PPUstatusL = %x\n", memory->read(0x2002));
+	printf("PPUstatusL = %x\n", *memory->map[0x2002]);
+	printf("N=%d\n",status[N]); //7
+	printf("V=%d\n",status[V]); //6
+	printf("B=%d\n",status[B]); //4
+	printf("D=%d\n",status[D]); //3
+	printf("I=%d\n",status[I]); //2
+	printf("Z=%d\n",status[Z]); //1
+	printf("C=%d\n",status[C]); //0
 	/*
 
 	accumulator,
@@ -828,7 +926,7 @@ int CPU::fetchOpcode(){
 			int less_sig = *memory->map[pc+1];
 			int more_sig = *memory->map[pc+2] << 8;
 			operand = more_sig | less_sig;
-			printf("MEM[%x] = %x\n", operand, memory->read(operand));
+			printf("MEM[%x] = %x\n", operand, *memory->map[operand]);
 			jumpTable[opcode](this);
 			pc+=3;
 		}
@@ -862,7 +960,7 @@ int CPU::fetchOpcode(){
 		case implied:
 			// Implied
 			cout << "Mode: Implied\n";
-			operand = -1;
+			//operand = -1;
 			jumpTable[opcode](this);
 			pc+=1;
 			break;

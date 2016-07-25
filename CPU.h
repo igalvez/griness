@@ -64,7 +64,10 @@ class CPU{
 		void setPflag(int flagPos, uint8 value);
 		void reset();
 		void branch();
-		
+
+		void push_status_to_Stack();
+		void pop_status_from_Stack();
+		void setSignalFlags(uint8 value);
 
 };
 

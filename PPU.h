@@ -22,6 +22,8 @@ class PPU {
 		uint8 x_pixel;
 		uint8 VRAM[PPU_SIZE];
 		uint8 SPRRAM[256];
+		int row;
+		int vblank_counter;
 		unsigned int screen_coord_x;
 		unsigned int screen_coord_y;
 		static unsigned int palette_map[64];
@@ -41,7 +43,7 @@ class PPU {
 		void writeScroll();
 		void writeData();
 		void readData();
-
+		void clearVBL();
 
 		void show_pattern_table();
 };
