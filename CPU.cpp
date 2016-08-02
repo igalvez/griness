@@ -786,8 +786,12 @@ void CPU::branch(){
 int CPU::emulateCycles(int cycles){
 	//int cycle = 0;
 	uint8 ppustatus = *memory->map[0x2002];
-	uint8 ppuctrl = memory->read(0x2000);
-	if((ppustatus&0x80==0x80)&& (ppuctrl&0x80==0x80)){
+	uint8 ppuctrl = *memory->map[0x2000];
+	printf("PPUCTRL&0x80 = %x&0x80=%x\n",ppuctrl,ppuctrl&0x80);
+	printf("PPUSTATUS = %x\n",ppustatus);
+	printf("PPUCTRL = %x\n",ppuctrl);
+	printf("PPUSTATUS&0x80 = %x&0x80=%x\n",ppustatus,ppustatus&0x80);
+	if((ppustatus&0x80==128) && (ppuctrl&0x80==128)){
 		printf("PRE EXECUTE NMI\n");
 		executeNMI();
 	}
@@ -835,7 +839,7 @@ int CPU::fetchOpcode(){
 
 	int mode;
 	//int addr = (memory->read(0xFFFF)<<8) | memory->read(0xFFFE);
-	uint8 ppuctrl = memory->read(0x2000);
+	uint8 ppuctrl = *memory->map[0x2000];
 	opcode = *memory->map[pc];
 	mode = opcodeMode[opcode];
 	printf("OPCODE = %x \n", opcode);
@@ -889,15 +893,15 @@ int CPU::fetchOpcode(){
 			// Immediate
 			cout << "Mode: immediate\n";
 			operand = *memory->map[pc+1];
-			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case zpage:
 			// Zero Page
-			cout << "Mode: zpage\n";
+			//cout << "Mode: zpage\n";
 			operand = *memory->map[pc+1];
-			printf("MEM[%x] = %x\n", operand, memory->read(operand));
+			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
@@ -905,9 +909,9 @@ int CPU::fetchOpcode(){
 			// Indexed Zero Page with X
 			cout << "Mode: zpageX\n";
 			operand = *memory->map[pc+1] + X;
-			printf("BLIP\n");
-			printf("operand = %x\n", operand);
-			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
+			//printf("BLIP\n");
+			//printf("operand = %x\n", operand);
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
@@ -1002,18 +1006,18 @@ int CPU::fetchOpcode(){
 			cout << "Mode: absoluteIndirect\n";
 			int pointer = (*memory->map[pc+2] << 8) | *memory->map[pc+1];
 			//pointer += 0x8000;
-			printf("pointer %x = %x\n", pointer, ((*memory->map[pointer+1] << 8) | *memory->map[pointer]));
+			//printf("pointer %x = %x\n", pointer, ((*memory->map[pointer+1] << 8) | *memory->map[pointer]));
 			operand = (*memory->map[pointer+1] << 8) | *memory->map[pointer];
 			//operand += 0x8000;
-			printf("MEM[%x] = %x\n", operand, memory->read(operand));
+		    printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=3;
 		}
 			break;
 		default: 
 			nmode = 0;
-			cout << "NO MODE!  ";
-			cout << "nmode = " << nmode << "\n";
+			//cout << "NO MODE!  ";
+			//cout << "nmode = " << nmode << "\n";
 			//pc+=1;
 			
 	}

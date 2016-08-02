@@ -1,5 +1,6 @@
 #include "types.h"
 #include "VideoRAM.h"
+#include <SDL2/SDL.h>
 
 #ifndef PPU_H
 #define PPU_H
@@ -46,6 +47,15 @@ class PPU {
 		void clearVBL();
 
 		void show_pattern_table();
+		void showGraphics(uint8 r, uint8 g, uint8 b);
+		void showGraphics(uint8 r,uint8 g, uint8 b,int x, int y);
+		bool keyboard_Event();
+		bool initSDL();
+		bool loadMedia();
+		void close();
+		void paintGraphics();
+		void showPatternTable(int addr);
+		
 };
 
 

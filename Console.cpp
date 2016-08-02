@@ -21,8 +21,9 @@ void Console::reset(){
 void Console::run(){
 	reset();
 	while(1){
-		cpu->emulateCycles(29780);
 		ppu->renderBackground();
+		cpu->emulateCycles(900);
+		ppu->showPatternTable(0x1000);
 	}
 }
 		
