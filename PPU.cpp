@@ -365,7 +365,7 @@ void PPU::showPatternTable(int addr){
 			for(int col=0; col<8; col++){
 				
 					temp = tile_high&0x01;
-					colour_idx = (temp<<1)|tile_low;
+					colour_idx = (temp<<1)|(tile_low&0x01);
 					rgb_colour = palette_map[readVRam(BACKGROUND_PALETTE + colour_idx)];
 					printf("pos linha %d, coluna %d\n",tile_line*8+line, tile_col*8+col);
 					
@@ -375,13 +375,13 @@ void PPU::showPatternTable(int addr){
 					red = (rgb_colour&0x00FF0000)>>16;
 					green = (rgb_colour&0x0000FF00)>>8;
 					blue = rgb_colour&0x000000FF;
-					if((temp2&0x01)==1){
+					if((temp2&0x80)==0x80){
   						showGraphics(0x00, 0x00, 0x00, tile_col*8+col, tile_line*8+line);
 					}
 					else{
 						showGraphics(0xff, 0xff, 0xff, tile_col*8+col, tile_line*8+line);
 					}
-					temp2 = temp2>>1;
+					temp2 = temp2<<1;
 	        }	
 		}		
 	}
