@@ -176,6 +176,150 @@ void PPU::show_pattern_table(){
 //void PPU::clearVBL(){
 	
 
+
+
+void PPU::renderBackground(){
+	uint16 tile_addr;
+	uint8 tile_low;
+	uint8 tile_high;
+	uint8 temp;
+	uint16 pattern_table_start = 0x3F00;
+	uint16 attr_table_base = current_addr&0x0FFF + 0x2000 + 0x3C0;
+	
+
+	uint8 attr_table_byte;
+	uint8 attr_table_group;
+	uint8 colour_idx;
+	uint8 rgb_colour;
+	uint8 tile_idx[32];
+
+	int tile_counter = 0;
+
+	uint16 temp2;	
+
+	
+
+	if(vblank_counter>0){
+		if(vblank_counter<=20){
+			printf("scanline %d\n",239+vblank_counter);
+			vblank_counter++;
+				
+			return;
+		}
+		vblank_counter=0;
+		current_addr = start_addr;
+		screen_coord_y = 0;
+		printf("BEGIN FRAME \n");
+		//SDL_SetRenderDrawColor(renderer, 0xFF,0xFF,0xFF,0xFF);
+		//SDL_RenderClear(renderer);
+	}	
+	
+	/* VRAM address registers:
+       FEDC BA98 7654 3210                  
+	   .yyy NNYY YYYX XXXX 
+    */
+ 	uint8 y = (current_addr&0x7000)>>12;
+
+	if(y==0){
+		
+		for(int col=0;col<32;col++){
+			printf("SCANLINE 1 of tile %d\n",col);
+			
+			tile_idx[col] = readVRam(current_addr&0x0FFF + 0x2000);
+			screen_coord_x = 8*col;
+			tile_low = readVRam(pattern_table_start+tile_idx[col]);
+			tile_high = readVRam(pattern_table_start+tile_idx[col]+8);
+			temp2 = tile_low|tile_high;
+			printf("PATTERN IDX %x\n",tile_idx[col]);
+			printf("tile low %x\n",tile_low);
+			printf("tile high %x\n",tile_high);
+			while(x_pixel<8){ 
+				
+				printf("screen col %d\n",screen_coord_x);
+				printf("screen line %d\n",screen_coord_y);
+				if((temp2&0x80)==0x80){
+  					showGraphics(0x00, 0x00, 0x00, screen_coord_x, screen_coord_y);
+				}
+				else{
+					showGraphics(0xff, 0xff, 0xff, screen_coord_x, screen_coord_y);
+				}
+				temp2 = temp2<<1;
+				x_pixel++;
+				screen_coord_x++;
+			}
+			x_pixel=0;
+			if (current_addr&0x001F==0x001F){ // If reached end of nametable, clean x scroll and switch bit 10 (nametable)
+				current_addr&=0xFFE0; 
+				current_addr = (~current_addr&0x0400) | current_addr&0xFBFF;
+				//attr_table_base= current_addr&0x0FFF + 0x2000 + 0x3C0;
+			}
+			else{
+				current_addr++;
+			}
+		}
+	}
+	else{
+		
+		for(int col=0;col<32;col++){
+			printf("SCANLINE %d of tile %d\n",y,col);
+			tile_low = readVRam(pattern_table_start+tile_idx[col]+y);
+			tile_high = readVRam(pattern_table_start+tile_idx[col]+y+8);
+			temp2 = tile_low|tile_high;	
+			screen_coord_x = 8*col;
+
+			while(x_pixel<8){ 
+				printf("screen col %d\n",screen_coord_x);
+				printf("screen line %d\n",screen_coord_y);
+				if((temp2&0x80)==0x80){
+  					showGraphics(0x00, 0x00, 0x00, screen_coord_x, screen_coord_y);
+				}
+				else{
+					showGraphics(0xff, 0xff, 0xff, screen_coord_x, screen_coord_y);
+				}
+				temp2 = temp2<<1;
+				x_pixel++;
+				screen_coord_x++;
+			}
+			x_pixel=0;
+			if (current_addr&0x001F==0x001F){ // If reached end of nametable, clean x scroll and switch bit 10 (nametable)
+				current_addr&=0xFFE0; 
+				current_addr = (~current_addr&0x0400) | current_addr&0xFBFF;
+				//attr_table_base= current_addr&0x0FFF + 0x2000 + 0x3C0;
+			}
+			else{
+				current_addr++;
+			}
+		}
+	}	
+
+	//Set x back to initial coordinates so we can start at the beginning of next scanline		
+	current_addr = (start_addr&0x0C1F) | (current_addr&0xF3E0); 
+	current_addr += 0x1000;	
+
+	if((y+1)>7){
+		current_addr &= 0x0FFF;
+		if(current_addr&0x03E0==0x03E0){
+		 // End of nametable
+		 // Reset Y scroll and switch bit 11 (nametable)
+			current_addr&=0xFC1F; 
+			current_addr = (~current_addr&0x0800) | current_addr&0xF7FF;
+		}
+		else{
+			current_addr+=0x0020;
+		}
+	}
+	if(screen_coord_y>239){
+		row=0;
+		executeNMI();
+		vblank_counter=1;
+		printf("RENDER \n");
+		
+		
+	}
+	SDL_RenderPresent(renderer);
+	screen_coord_y++;
+}
+
 /*void PPU::renderBackground(){
 
 	/* VRAM address registers:
@@ -334,6 +478,43 @@ void PPU::show_pattern_table(){
 }*/
 
 
+void PPU::showNameTable(uint16 ntb, uint16 ptb){
+
+	uint16 addr = ntb;
+	uint8 tile_idx, tile_low, tile_high;
+	uint8 temp2;
+	uint16 aux;
+	for(int line=0;line<30;line++){
+		for(int col=0;col<32;col++){
+			tile_idx = readVRam(addr);
+			
+			for(int pline=0;pline<8;pline++){
+				printf("ptb + tile_idx + pline = %d + %d + %d = %d\n",ptb,tile_idx,pline,(ptb+tile_idx+pline));
+				tile_low = readVRam(ptb+tile_idx+pline);
+				tile_high = readVRam(ptb+tile_idx+pline);
+				temp2 = tile_high|tile_low;	
+				for(int pcol=0;pcol<8;pcol++){
+					printf("npos linha %d, coluna %d\n",line*8+pline, col*8+pcol);
+					
+					tile_high = tile_high>>1;
+					tile_low >>= 1;	
+					
+					if((temp2&0x80)==0x80){
+  						showGraphics(0x00, 0x00, 0x00, col*8+pcol, line*8+pline);
+					}
+					else{
+						showGraphics(0xff, 0xff, 0xff, col*8+pcol, line*8+pline);
+					}
+					temp2 = temp2<<1;
+				}
+				//tile_idx++;
+	        }	
+			addr++;
+		}
+	}
+	SDL_RenderPresent(renderer);
+}
+				
 
 void PPU::showPatternTable(int addr){
 	uint8 tile_low, tile_high;
@@ -435,11 +616,11 @@ void PPU::showGraphics(uint8 r,uint8 g, uint8 b,int x, int y){
 	SDL_RenderFillRect(renderer, &pixel);
 }
 
-void PPU::renderBackground(){
+/*void PPU::renderBackground(){
 
 	/* VRAM address registers:
         FEDC BA98 7654 3210                  
-		.yyy NNYY YYYX XXXX*/
+		.yyy NNYY YYYX XXXX
 	
 	uint16 tile_addr;
 	uint8 tile_low;
@@ -486,7 +667,7 @@ void PPU::renderBackground(){
 				else if(attr_table_group>1)
 					colour_idx >> 2*attr_table_group;
 				
-				
+	
 				tile_addr = readVRam(current_addr&0x0FFF + 0x2000);
 				tile_low = readVRam(pattern_table_start+y);
 				tile_high = readVRam(pattern_table_start+y+8);
@@ -500,12 +681,12 @@ void PPU::renderBackground(){
 					colour_idx |= (temp<<1 | tile_low&0x01);
 					rgb_colour = palette_map[readVRam(BACKGROUND_PALETTE + colour_idx)];
 					
-					/*if(temp2&0x01==0x01){
+					if(temp2&0x01==0x01){
 						printf("0");
 					}
 					else{
 						printf(" ");
-					//}*/
+					//}
 					tile_high = tile_high>>1;
 					tile_low >>= 1;
 					temp2>>=1;
@@ -560,7 +741,7 @@ void PPU::renderBackground(){
 
 	//SDL_RenderPresent(renderer);
 	executeNMI();
-}
+}*/
 
 
 

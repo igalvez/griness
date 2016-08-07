@@ -22,8 +22,9 @@ void Console::run(){
 	reset();
 	while(1){
 		ppu->renderBackground();
-		cpu->emulateCycles(900);
-		ppu->showPatternTable(0x1000);
+		cpu->emulateCycles(114);
+		//ppu->showPatternTable(0x1000);
+		//ppu->showNameTable(0x2400, 0x0000);
 	}
 }
 		

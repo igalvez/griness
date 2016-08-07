@@ -55,6 +55,7 @@ class PPU {
 		void close();
 		void paintGraphics();
 		void showPatternTable(int addr);
+		void showNameTable(uint16 ntb, uint16 ptb);
 		
 };
 
