@@ -237,12 +237,12 @@ void PPU::renderBackground(){
 				
 				printf("screen col %d\n",screen_coord_x);
 				printf("screen line %d\n",screen_coord_y);
-				if((temp2&0x80)==0x80){
+				/*if((temp2&0x80)==0x80){
   					showGraphics(0x00, 0x00, 0x00, screen_coord_x, screen_coord_y);
 				}
 				else{
 					showGraphics(0xff, 0xff, 0xff, screen_coord_x, screen_coord_y);
-				}
+				}*/
 				temp2 = temp2<<1;
 				x_pixel++;
 				screen_coord_x++;
@@ -270,12 +270,12 @@ void PPU::renderBackground(){
 			while(x_pixel<8){ 
 				printf("screen col %d\n",screen_coord_x);
 				printf("screen line %d\n",screen_coord_y);
-				if((temp2&0x80)==0x80){
+				/*if((temp2&0x80)==0x80){
   					showGraphics(0x00, 0x00, 0x00, screen_coord_x, screen_coord_y);
 				}
 				else{
 					showGraphics(0xff, 0xff, 0xff, screen_coord_x, screen_coord_y);
-				}
+				}*/
 				temp2 = temp2<<1;
 				x_pixel++;
 				screen_coord_x++;
@@ -527,28 +527,35 @@ void PPU::showPatternTable(int addr){
 	uint8 red;
 	uint8 green;
 	uint8 blue;
+	uint16 addr_low, addr_high;
 	SDL_SetRenderDrawColor(renderer, 0xFF,0xFF,0xFF,0xFF);
 	SDL_RenderClear(renderer);
-	for(int i=0;i<0x1000;i+=0xF){ //1C2
+	printf("0 MARK Is %x\n",readVRam(0x1000));
+	for(int i=0;i<0x1000;i+=0x10){ //1C2
 
 		printf("ADDR %x = %x\n",i,readVRam(i+addr));
-		tile_line = i/((0xF)*0x10);
-		tile_col = (i/0xf)%0x10;
+		tile_line = i/((0xF)*0x11);
+		tile_col = (i/0xf)%0x11;
 		printf("TILE LINE = %d\n",tile_line);
 		printf("TILE COL = %d\n",tile_col);	
 
 		for(int line=0;line<8;line++){
+			addr_low = i+line+addr;
+			addr_high = i+line+addr+8;
 			tile_low = readVRam(i+line+addr);
-			tile_high = readVRam(i*2+line+addr);
+			tile_high = readVRam(i+line+addr+8);
 			temp2 = tile_high|tile_low;	
-			//printf("tile_low %x\n",tile_low);
-			//printf("tile_high %x\n",tile_high);
+			printf("addr low  %x\n",addr_low);
+			printf("addr high %x\n",addr_high);
+			printf("tile_low %x\n",tile_low);
+			printf("tile_high %x\n",tile_high);
+			printf("temp2 %x\n",temp2);
 			for(int col=0; col<8; col++){
 				
 					temp = tile_high&0x01;
 					colour_idx = (temp<<1)|(tile_low&0x01);
 					rgb_colour = palette_map[readVRam(BACKGROUND_PALETTE + colour_idx)];
-					printf("pos linha %d, coluna %d\n",tile_line*8+line, tile_col*8+col);
+					//printf("pos linha %d, coluna %d\n",tile_line*8+line, tile_col*8+col);
 					
 					tile_high = tile_high>>1;
 					tile_low >>= 1;	
