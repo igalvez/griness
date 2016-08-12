@@ -500,25 +500,32 @@ void sbcF(CPU *cpuObj){
 // Subtract M from A with Borrow
 /* IMMEDIATE:#E9, ZPAGE:#E5, ZPAGEX:#F5, ABSOLUTE:#ED, ABSOLUTEX:#FD
    ABSOLUTEY:#F9, INDIRECTX:#E1, INDIRECTY:#F1 */ 
-	int number;
+	uint8 number;
 	if(CPU::opcodeMode[cpuObj->opcode] == immediate){
 		number = cpuObj->operand;
 	}
 	else{
 		number = cpuObj->memory->read(cpuObj->operand);
 	}
-	uint16 res = cpuObj->A - (number + cpuObj->status[C]);
+	uint8 a = cpuObj->A - number - (1 - cpuObj->status[C]);
+	int res = int(cpuObj->A) - int(number) - int(1 - cpuObj->status[C]);
 
 	//TODO: VER DIFF ENTRE Carry e OVERFLOW	(NESSE CASO CARRY EH BORROW
-	if(res>0xFF){
+	if(res>=0){
 		cpuObj->status[C] = 1;
+	}
+	else{
+	    cpuObj->status[C] = 0;
+	}
+
+
+	if((((cpuObj->A|number)&0x80)!=0) && (((a|cpuObj->A)&0x80)!=0)){
 		cpuObj->status[V] = 1;
 	}
 	else{
-		cpuObj->status[C] = 1;
-		cpuObj->status[V] = 1;
+		cpuObj->status[V] = 0;
 	}
-	cpuObj->A = res;
+	cpuObj->A = a;
 	cpuObj->setSignalFlags(cpuObj->A);
 }
 
@@ -940,7 +947,7 @@ int CPU::fetchOpcode(){
 		{
 			cout << "Mode: absoluteX\n";
 			int less_sig = *memory->map[pc+1];
-			int more_sig = *memory->map[pc+2];
+			int more_sig = *memory->map[pc+2]<<8;
 			operand = more_sig | less_sig;
 			operand += X;
 			printf("MEM[%x] = %x\n", operand, memory->read(operand));

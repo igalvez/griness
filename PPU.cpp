@@ -183,8 +183,8 @@ void PPU::renderBackground(){
 	uint8 tile_low;
 	uint8 tile_high;
 	uint8 temp;
-	uint16 pattern_table_start = 0x3F00;
-	uint16 attr_table_base = current_addr&0x0FFF + 0x2000 + 0x3C0;
+	uint16 pattern_table_start = 0x0000;
+	uint16 attr_table_base = current_addr&0x0FFF + 0x2800 + 0x3C0;
 	
 
 	uint8 attr_table_byte;
@@ -192,6 +192,7 @@ void PPU::renderBackground(){
 	uint8 colour_idx;
 	uint8 rgb_colour;
 	uint8 tile_idx[32];
+	uint16 aux;
 
 	int tile_counter = 0;
 
@@ -223,20 +224,23 @@ void PPU::renderBackground(){
 	if(y==0){
 		
 		for(int col=0;col<32;col++){
-			printf("SCANLINE 1 of tile %d\n",col);
-			
-			tile_idx[col] = readVRam(current_addr&0x0FFF + 0x2000);
+			//printf("SCANLINE 1 of tile %d\n",col);
+			 //readVRam(addr)*16
+			aux = (current_addr&0x0FFF) + 0x2000;
+			//printf("NAMETABLE ADDR = %x\n",aux);
+			//printf("prefix addr =%x\n",current_addr&0x0FFF);
+			tile_idx[col] = readVRam(aux)*16;
 			screen_coord_x = 8*col;
 			tile_low = readVRam(pattern_table_start+tile_idx[col]);
 			tile_high = readVRam(pattern_table_start+tile_idx[col]+8);
 			temp2 = tile_low|tile_high;
-			printf("PATTERN IDX %x\n",tile_idx[col]);
-			printf("tile low %x\n",tile_low);
-			printf("tile high %x\n",tile_high);
+			//printf("PATTERN IDX %d\n",tile_idx[col]);
+			//printf("tile low %x\n",tile_low);
+			//printf("tile high %x\n",tile_high);
 			while(x_pixel<8){ 
 				
-				printf("screen col %d\n",screen_coord_x);
-				printf("screen line %d\n",screen_coord_y);
+				//printf("screen col %d\n",screen_coord_x);
+				//printf("screen line %d\n",screen_coord_y);
 				/*if((temp2&0x80)==0x80){
   					showGraphics(0x00, 0x00, 0x00, screen_coord_x, screen_coord_y);
 				}
@@ -261,15 +265,15 @@ void PPU::renderBackground(){
 	else{
 		
 		for(int col=0;col<32;col++){
-			printf("SCANLINE %d of tile %d\n",y,col);
+			//printf("SCANLINE %d of tile %d\n",y,col);
 			tile_low = readVRam(pattern_table_start+tile_idx[col]+y);
 			tile_high = readVRam(pattern_table_start+tile_idx[col]+y+8);
 			temp2 = tile_low|tile_high;	
 			screen_coord_x = 8*col;
 
 			while(x_pixel<8){ 
-				printf("screen col %d\n",screen_coord_x);
-				printf("screen line %d\n",screen_coord_y);
+				//printf("screen col %d\n",screen_coord_x);
+				//printf("screen line %d\n",screen_coord_y);
 				/*if((temp2&0x80)==0x80){
   					showGraphics(0x00, 0x00, 0x00, screen_coord_x, screen_coord_y);
 				}
@@ -486,15 +490,16 @@ void PPU::showNameTable(uint16 ntb, uint16 ptb){
 	uint16 aux;
 	for(int line=0;line<30;line++){
 		for(int col=0;col<32;col++){
-			tile_idx = readVRam(addr);
-			
+			tile_idx = readVRam(addr)*16;
+			//printf("TILE IDX = %d\n",tile_idx);
+			//printf("ADDR NTB %x\n",addr);
 			for(int pline=0;pline<8;pline++){
-				printf("ptb + tile_idx + pline = %d + %d + %d = %d\n",ptb,tile_idx,pline,(ptb+tile_idx+pline));
+				//printf("ptb + tile_idx + pline = %x + %x + %x = %x\n",ptb,tile_idx,pline,(ptb+tile_idx+pline));
 				tile_low = readVRam(ptb+tile_idx+pline);
-				tile_high = readVRam(ptb+tile_idx+pline);
+				tile_high = readVRam(ptb+tile_idx+pline+8);
 				temp2 = tile_high|tile_low;	
 				for(int pcol=0;pcol<8;pcol++){
-					printf("npos linha %d, coluna %d\n",line*8+pline, col*8+pcol);
+					//printf("npos linha %d, coluna %d\n",line*8+pline, col*8+pcol);
 					
 					tile_high = tile_high>>1;
 					tile_low >>= 1;	
