@@ -139,7 +139,7 @@ void bitF(CPU *cpuObj){
 
 void bmiF(CPU *cpuObj){ //#30
 // Branch on Result Minus
-	printf("\n\nBMI \n\n");
+	//printf("\n\nBMI \n\n");
 	if(cpuObj->status[N]==1){
 		cpuObj->branch();
 	}
@@ -154,7 +154,7 @@ void bneF(CPU *cpuObj){ //#D0
 
 void bplF(CPU *cpuObj){ //#10
 // Branch on Result Plus
-	printf("BPL operand %d \n", cpuObj->operand); 
+	//printf("BPL operand %d \n", cpuObj->operand); 
 	if(cpuObj->status[N]==0){
 		cpuObj->branch();
 	}
@@ -320,9 +320,9 @@ void jsrF(CPU *cpuObj){ //#20
 	cpuObj->memory->write(cpuObj->sp--, pc_high);
 	cpuObj->memory->write(cpuObj->sp--, pc_low);
 	cpuObj->pc = cpuObj->operand - 3;
-	for (int i=cpuObj->sp; i<=0x1ff; i++){
+	/*for (int i=cpuObj->sp; i<=0x1ff; i++){
 		printf("%x = %x\n", i, cpuObj->memory->read(i));
-	}
+	}*/
 }
 
 void ldaF(CPU *cpuObj){
@@ -330,15 +330,15 @@ void ldaF(CPU *cpuObj){
 /* IMMEDIATE:#A9, ZPAGE:#A5, ZPAGEX:#B5, ABSOLUTE:#AD, ABSOLUTEX:#BD
    ABSOLUTEY:#B9, INDIRECTX:#A1, INDIRECTY:#B1 */ 
 	if(CPU::opcodeMode[cpuObj->opcode] == immediate){
-		printf("cpuOBJ->A before = %x\n", cpuObj->A);
+		//printf("cpuOBJ->A before = %x\n", cpuObj->A);
 		cpuObj->A = (short) cpuObj->operand;
-		printf("operandeeee = %x\n", cpuObj->operand);
-		printf("cpuOBJ->A = %x\n", cpuObj->A);
+		//printf("operandeeee = %x\n", cpuObj->operand);
+		//printf("cpuOBJ->A = %x\n", cpuObj->A);
 	}
 	else{
 		
 		cpuObj->A = cpuObj->memory->read(cpuObj->operand);
-		printf("MEM TO A = %x",cpuObj->A); 
+		//printf("MEM TO A = %x",cpuObj->A); 
 
 	}
 	cpuObj->setSignalFlags(cpuObj->A);
@@ -479,10 +479,10 @@ void rorF(CPU *cpuObj){
 void rtiF(CPU *cpuObj){ //#40
 // Return from Interrupt
 	uint8 P;
-	printf("\nSTACK:\n");
+	/*printf("\nSTACK:\n");
 	for (int i=cpuObj->sp; i<=0x1ff; i++){
 		printf("%x = %x\n", i, cpuObj->memory->read(i));
-	}
+	}*/
 	//P = cpuObj->memory->read(++cpuObj->sp);
 	//for(int i=0;i<8;i++){
 	cpuObj->pop_status_from_Stack();
@@ -761,7 +761,7 @@ void CPU::initialize(Memory *memP){
 	printf("D=%d\n",D); //3
 	printf("I=%d\n",I); //2
 	printf("Z=%d\n",Z); //1
-	printf("C=%d\n",C); //0
+	printf("C=%d\n",C); //0*/
 	reset();
 }
 
@@ -784,7 +784,7 @@ void CPU::branch(){
 	//uint8 high = (pc>>8);//operand>>8);
 	sint8 x = (sint8) operand;
 	//uint8 low = (pc & 0x00FF) + x;
-	printf("BRANCH: pc = %d + (%d) \n",pc,x);
+	//printf("BRANCH: pc = %d + (%d) \n",pc,x);
 	pc = pc + x;
 
 	//pc = high + low;
@@ -798,11 +798,11 @@ int CPU::emulateCycles(int cycles){
 	printf("PPUSTATUS = %x\n",ppustatus);
 	printf("PPUCTRL = %x\n",ppuctrl);
 	printf("PPUSTATUS&0x80 = %x&0x80=%x\n",ppustatus,ppustatus&0x80);
-	if((ppustatus&0x80==128) && (ppuctrl&0x80==128)){
-		printf("PRE EXECUTE NMI\n");
+	if(((ppustatus&0x80)==0x80) && ((ppuctrl&0x80)==0x80)){
+	    printf("PRE EXECUTE NMI\n");
 		executeNMI();
 	}
-	printf("\nPPUSTATUS emulate cycle = %x\n",ppustatus);
+	//printf("\nPPUSTATUS emulate cycle = %x\n",ppustatus);
 	int cclock = 0;
 	while(cclock < cycles){
 		int ret = fetchOpcode();
@@ -870,7 +870,7 @@ int CPU::fetchOpcode(){
 	printf("D=%d\n",status[D]); //3
 	printf("I=%d\n",status[I]); //2
 	printf("Z=%d\n",status[Z]); //1
-	printf("C=%d\n",status[C]); //0
+	printf("C=%d\n",status[C]); //0*/
 	/*
 
 	accumulator,
@@ -900,15 +900,15 @@ int CPU::fetchOpcode(){
 			// Immediate
 			cout << "Mode: immediate\n";
 			operand = *memory->map[pc+1];
-			printf("MEM[%x] = %x\n", operand, memory->read(operand));
+			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
 		case zpage:
 			// Zero Page
-			//cout << "Mode: zpage\n";
+			cout << "Mode: zpage\n";
 			operand = *memory->map[pc+1];
-			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
@@ -917,7 +917,7 @@ int CPU::fetchOpcode(){
 			cout << "Mode: zpageX\n";
 			operand = *memory->map[pc+1] + X;
 			//printf("BLIP\n");
-			//printf("operand = %x\n", operand);
+			printf("operand = %x\n", operand);
 			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
@@ -1023,8 +1023,8 @@ int CPU::fetchOpcode(){
 			break;
 		default: 
 			nmode = 0;
-			//cout << "NO MODE!  ";
-			//cout << "nmode = " << nmode << "\n";
+			cout << "NO MODE!  ";
+			cout << "nmode = " << nmode << "\n";
 			//pc+=1;
 			
 	}

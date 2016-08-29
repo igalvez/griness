@@ -108,7 +108,7 @@ void PPU::executeNMI(){
 
 void PPU::writeScroll(){
 	uint16 temp;
-	printf("\nPPU WRITE Scroll\n");
+	//printf("\nPPU WRITE Scroll\n");
 	temp = *regs[5];
 	if(!write_toggle){
 	// Write upper byte to start_addr
@@ -137,17 +137,21 @@ void PPU::writeAddr(){
 		current_addr = temp | (current_addr&0xFF00);
 		write_toggle = 0;
 	}
+	printf("addr %x\n", current_addr);
 	//toggle();
 }
 
 void PPU::writeData(){
 	printf("\nPPU WRITE DATA \n");
-	writeVRam(current_addr,*regs[7]);
+	printf("addr %x\n", current_addr);
+	uint16 addr = (current_addr&0x0FFF) + 0x2000;
+	printf("addr %x\n", addr);
+	writeVRam(addr,*regs[7]);
 	current_addr++;
 }
 
 void PPU::readData(){
-	printf("\nPPU READ DATA \n");
+	//printf("\nPPU READ DATA \n");
 	*regs[7] = readVRam(current_addr);
 	current_addr++;
 }
@@ -160,14 +164,14 @@ void PPU::doDMA(uint8 **map, uint8 value){
 		SPRRAM[i] = *map[addr + i];
 		//Aprintf("addr:%x, Data: %x\n",(addr+i),SPRRAM[i]);
 	}
-	printf("FINISH DMA\n");
+	//printf("FINISH DMA\n");
 }
 
 
 void PPU::show_pattern_table(){
-	printf("name table\n");
+	//printf("name table\n");
 	for(int i=0;i<CHR_BANK_SIZE;i++){
-		printf("addr: %x, data:%x\n",i,VRAM[i]);
+		//printf("addr: %x, data:%x\n",i,VRAM[i]);
 	}
 
 }
@@ -202,7 +206,7 @@ void PPU::renderBackground(){
 
 	if(vblank_counter>0){
 		if(vblank_counter<=20){
-			printf("scanline %d\n",239+vblank_counter);
+			//printf("scanline %d\n",239+vblank_counter);
 			vblank_counter++;
 				
 			return;
@@ -210,7 +214,7 @@ void PPU::renderBackground(){
 		vblank_counter=0;
 		current_addr = start_addr;
 		screen_coord_y = 0;
-		printf("BEGIN FRAME \n");
+		//printf("BEGIN FRAME \n");
 		//SDL_SetRenderDrawColor(renderer, 0xFF,0xFF,0xFF,0xFF);
 		//SDL_RenderClear(renderer);
 	}	
@@ -246,7 +250,7 @@ void PPU::renderBackground(){
 				}
 				else{
 					showGraphics(0xff, 0xff, 0xff, screen_coord_x, screen_coord_y);
-				}*/
+				}//*/
 				temp2 = temp2<<1;
 				x_pixel++;
 				screen_coord_x++;
@@ -279,7 +283,7 @@ void PPU::renderBackground(){
 				}
 				else{
 					showGraphics(0xff, 0xff, 0xff, screen_coord_x, screen_coord_y);
-				}*/
+				}//*/
 				temp2 = temp2<<1;
 				x_pixel++;
 				screen_coord_x++;
@@ -487,16 +491,18 @@ void PPU::showNameTable(uint16 ntb, uint16 ptb){
 	uint16 addr = ntb;
 	uint8 tile_idx, tile_low, tile_high;
 	uint8 temp2;
-	uint16 aux;
+	uint16 aux,naddr;
 	for(int line=0;line<30;line++){
 		for(int col=0;col<32;col++){
-			tile_idx = readVRam(addr)*16;
+			tile_idx = readVRam(addr);
+			naddr = tile_idx*16;
 			//printf("TILE IDX = %d\n",tile_idx);
-			//printf("ADDR NTB %x\n",addr);
+			//printf("ADDR NTB %x\n",naddr);
+			//tile_idx = addr;
 			for(int pline=0;pline<8;pline++){
 				//printf("ptb + tile_idx + pline = %x + %x + %x = %x\n",ptb,tile_idx,pline,(ptb+tile_idx+pline));
-				tile_low = readVRam(ptb+tile_idx+pline);
-				tile_high = readVRam(ptb+tile_idx+pline+8);
+				tile_low = readVRam(ptb+naddr+pline);
+				tile_high = readVRam(ptb+naddr+pline+8);
 				temp2 = tile_high|tile_low;	
 				for(int pcol=0;pcol<8;pcol++){
 					//printf("npos linha %d, coluna %d\n",line*8+pline, col*8+pcol);
@@ -535,14 +541,14 @@ void PPU::showPatternTable(int addr){
 	uint16 addr_low, addr_high;
 	SDL_SetRenderDrawColor(renderer, 0xFF,0xFF,0xFF,0xFF);
 	SDL_RenderClear(renderer);
-	printf("0 MARK Is %x\n",readVRam(0x1000));
-	for(int i=0;i<0x1000;i+=0x10){ //1C2
+	//printf("0 MARK Is %x\n",readVRam(0x1000));
+	for(int i=0;i<=0x1000;i+=0x10){ //1C2
 
-		printf("ADDR %x = %x\n",i,readVRam(i+addr));
-		tile_line = i/((0xF)*0x11);
-		tile_col = (i/0xf)%0x11;
-		printf("TILE LINE = %d\n",tile_line);
-		printf("TILE COL = %d\n",tile_col);	
+		//printf("ADDR %x = %x\n",i,readVRam(i+addr));
+		tile_line = i/((0x10)*0x10);
+		tile_col = (i/0x10)%0x10;
+		//printf("TILE LINE = %d\n",tile_line);
+		//printf("TILE COL = %d\n",tile_col);	
 
 		for(int line=0;line<8;line++){
 			addr_low = i+line+addr;
@@ -550,11 +556,11 @@ void PPU::showPatternTable(int addr){
 			tile_low = readVRam(i+line+addr);
 			tile_high = readVRam(i+line+addr+8);
 			temp2 = tile_high|tile_low;	
-			printf("addr low  %x\n",addr_low);
+			/*printf("addr low  %x\n",addr_low);
 			printf("addr high %x\n",addr_high);
 			printf("tile_low %x\n",tile_low);
 			printf("tile_high %x\n",tile_high);
-			printf("temp2 %x\n",temp2);
+			printf("temp2 %x\n",temp2);*/
 			for(int col=0; col<8; col++){
 				
 					temp = tile_high&0x01;
@@ -666,7 +672,7 @@ void PPU::showGraphics(uint8 r,uint8 g, uint8 b,int x, int y){
 		//for(int scanline=0; scanline<8; scanline++){//8 scanlines per tile row
 			uint8 y = (current_addr&0x7000)>>12; // pixel line of tile
 			screen_coord_y = 8*row + y;
-			//printf("\n");
+			//printf("\n";
 			for(int tile=0; tile<FRAME_WIDTH; tile++){
 				//Get upper palette bits from attribute table
 				attr_table_byte = 8*(tile_counter/128) + ((tile_counter%128)%32)%4;
@@ -922,7 +928,7 @@ bool PPU::initSDL(){
 		return false;
 	}
 	
-	window = SDL_CreateWindow("SDL2 first window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow("SDL2 first window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 960, SDL_WINDOW_SHOWN);
 
 	if(window==NULL){
 		printf("Window could not be created. SDL_Error: %s\n", SDL_GetError());

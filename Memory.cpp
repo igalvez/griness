@@ -76,7 +76,7 @@ uint8 Memory::read(uint16 addr){
 	}
 	data = *map[addr];
 	if(addr==0x2002){
-		printf("READ %x, data= %x\n",addr,data);
+		//printf("READ %x, data= %x\n",addr,data);
 		*map[0x2002]&=0x7f; //CLEAR VBLANK Flag
 	}
 	return data;
@@ -101,7 +101,7 @@ void Memory::write(int addr, sint8 value){
 		cartridge->mapper.write(this,addr,value);
 	}
 	else {
-		printf(" \n Memory write value %x, addr %x\n",value,addr);
+		//printf(" \n Memory write value %x, addr %x\n",value,addr);
 		*map[addr] = value;
 		if (addr==0x2005){
 			ppuobj->writeScroll();
@@ -194,11 +194,11 @@ int Memory::switchBanks(int bank,uint8 mode){
 			
 int Memory::doDMA(uint8 value){
 	uint16 addr = value*100;
-	printf("START DMA ADDR = %d\n",addr);
+	//printf("START DMA ADDR = %d\n",addr);
 	for(int i =0; i<256; i++){
 		printf("oi\n");
 		//ppuobj->SPRRAM[i] = 0x01;//*map[addr + i];
 	}
-	printf("FINISH DMA\n");
+	//printf("FINISH DMA\n");
 }
 	
