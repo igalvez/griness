@@ -1,7 +1,8 @@
-#include "Console.h"
-#include "Cartridge.h"
 #include <stdio.h>
 #include <string>
+#include "Console.h"
+#include "Cartridge.h"
+
 
 
 int main(int argc,char *argv[]){

@@ -20,7 +20,7 @@ bool Cartridge::loadGame(string gameName){
 	gameROM = new uint8[size_game];
 	fread(gameROM, size_game*sizeof(uint8), 1, newgame);
 	fclose(newgame);
-	getMapper();
+	this->getMapper();
 	n_banks = gameROM[4];
 	chr_banks = gameROM[5];
 	return true;
@@ -35,6 +35,7 @@ void Cartridge::getMapper(){
 		//case 0:
 			//mapper = NULL;
 		case 1:
+			printf("Mapper is MMC\n");
 			mapper = MMC1();
 		break;
 	}

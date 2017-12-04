@@ -25,8 +25,8 @@ class PPU {
 		uint8 SPRRAM[256];
 		int row;
 		int vblank_counter;
-		unsigned int screen_coord_x;
-		unsigned int screen_coord_y;
+		int screen_coord_x;
+		int screen_coord_y;
 		static unsigned int palette_map[64];
 		
 	public:

@@ -11,9 +11,11 @@ class Console {
 	private:
 		Memory *memory;
 		CPU *cpu;
-		PPU *ppu;
+		PPU *ppu;		
+		static void exit_handler(int sig);
 
 	public:
+		static bool exit_run;
 		Console();
 		void loadGame(Cartridge cart);
 		void run();

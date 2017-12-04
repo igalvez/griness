@@ -50,7 +50,7 @@ void MMC1::switch_banks(Memory *mem, int addr){
 	}
 	else{
 		//PRG bank 
-		if(prgBank != bank&0x0F){ 
+		if(prgBank != (bank&0x0F)){ 
 			prgBank = bank & 0x0F;
 			uint8 mode = (controlReg & 0x0C)>>2; //PRG ROM bank mode
 			

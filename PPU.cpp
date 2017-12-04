@@ -183,12 +183,12 @@ void PPU::show_pattern_table(){
 
 
 void PPU::renderBackground(){
-	uint16 tile_addr;
+	//uint16 tile_addr;
 	uint8 tile_low;
 	uint8 tile_high;
-	uint8 temp;
+	//uint8 temp;
 	uint16 pattern_table_start = 0x0000;
-	uint16 attr_table_base = current_addr&0x0FFF + 0x2800 + 0x3C0;
+	uint16 attr_table_base = (current_addr&0x0FFF) + 0x2800 + 0x3C0;
 	
 
 	uint8 attr_table_byte;
@@ -256,9 +256,9 @@ void PPU::renderBackground(){
 				screen_coord_x++;
 			}
 			x_pixel=0;
-			if (current_addr&0x001F==0x001F){ // If reached end of nametable, clean x scroll and switch bit 10 (nametable)
+			if ((current_addr&0x001F)==0x001F){ // If reached end of nametable, clean x scroll and switch bit 10 (nametable)
 				current_addr&=0xFFE0; 
-				current_addr = (~current_addr&0x0400) | current_addr&0xFBFF;
+				current_addr = (~current_addr&0x0400) | (current_addr&0xFBFF);
 				//attr_table_base= current_addr&0x0FFF + 0x2000 + 0x3C0;
 			}
 			else{
@@ -289,9 +289,9 @@ void PPU::renderBackground(){
 				screen_coord_x++;
 			}
 			x_pixel=0;
-			if (current_addr&0x001F==0x001F){ // If reached end of nametable, clean x scroll and switch bit 10 (nametable)
+			if ((current_addr&0x001F)==0x001F){ // If reached end of nametable, clean x scroll and switch bit 10 (nametable)
 				current_addr&=0xFFE0; 
-				current_addr = (~current_addr&0x0400) | current_addr&0xFBFF;
+				current_addr = (~current_addr&0x0400) | (current_addr&0xFBFF);
 				//attr_table_base= current_addr&0x0FFF + 0x2000 + 0x3C0;
 			}
 			else{
@@ -306,11 +306,11 @@ void PPU::renderBackground(){
 
 	if((y+1)>7){
 		current_addr &= 0x0FFF;
-		if(current_addr&0x03E0==0x03E0){
+		if((current_addr&0x03E0)==0x03E0){
 		 // End of nametable
 		 // Reset Y scroll and switch bit 11 (nametable)
 			current_addr&=0xFC1F; 
-			current_addr = (~current_addr&0x0800) | current_addr&0xF7FF;
+			current_addr = (~current_addr&0x0800) | (current_addr&0xF7FF);
 		}
 		else{
 			current_addr+=0x0020;

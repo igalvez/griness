@@ -134,7 +134,7 @@ void Memory::write(int addr, int value, int nbytes){
 
 void Memory::loadGame(Cartridge &cart){
 	cartridge = &cart;
-	int j = 0;
+	//int j = 0;
 	int lastBank = (cartridge->n_banks - 1)*PRG_BANK_SIZE + 16;
 	//int chr_begin = (cartridge->n_banks)*PRG_BANK_SIZE + 16;
 	
@@ -168,7 +168,7 @@ int Memory::switchBanks(int bank,uint8 mode){
 		return 1;
 	}
 	//int addr = bank*BANK_SIZE;
-	if (mode&0x02==0){ //switch 32KB
+	if ((mode&0x02)==0){ //switch 32KB
 		int addr = (bank & 0x0E)*BANK_SIZE + 16; //ignore last bit (which is only used for 16KB bank switches)
 		for(int i=0; i<2*BANK_SIZE; i++){
 			*map[i+0x8000] = cartridge->gameROM[addr + i];
@@ -177,7 +177,7 @@ int Memory::switchBanks(int bank,uint8 mode){
 	else{
 		int addr = bank*BANK_SIZE + 16;
 		uint16 start_addr;
-		if (mode&0x01==0){
+		if ((mode&0x01)==0){
 			// Switch 16 KB at C000
 			start_addr = 0xC000;
 		}
@@ -200,5 +200,6 @@ int Memory::doDMA(uint8 value){
 		//ppuobj->SPRRAM[i] = 0x01;//*map[addr + i];
 	}
 	//printf("FINISH DMA\n");
+	return 0;
 }
 	

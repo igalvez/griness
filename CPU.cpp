@@ -28,6 +28,7 @@ enum Modes{
 
 
 
+
 /* ALFABETICAL ORDER */
 
 
@@ -37,33 +38,16 @@ void adcF(CPU *cpuObj){ //
 	uint16 res;
 	if(CPU::opcodeMode[cpuObj->opcode] == immediate){ //#69
 		res = cpuObj->A + cpuObj->operand + cpuObj->status[C];
+		res = cpuObj->comp2Operation(cpuObj->A, cpuObj->operand, '+', true);
+
 	}
 	else{  
 	/* ZPAGE:#65, ZPAGEX:#75, ABSOLUTE:#6D, ABSOLUTEX:#7D
 	   ABSOLUTEY:#79, INDIRECTX:#61, INDIRECTY:#71
 	*/
-	    res = cpuObj->A + cpuObj->memory->read(cpuObj->operand) + cpuObj->status[C];
-	}
-
-	if(res>0x00FF){ // overflow
-		cpuObj->status[V] = 1;
-	}
-	else{
-		cpuObj->status[V] = 0;
+	    res = cpuObj->comp2Operation(cpuObj->A, cpuObj->memory->read(cpuObj->operand), '+', true);
 	}
 	cpuObj->A = res;
-	//TODO: update carry flag
-
-	cpuObj->setSignalFlags(res);
-	
-/*if(cpuObj->A==0){
-		cpuObj->status[Z]=1; // Set zero flag
-		
-	}
-	else{
-		cpuObj->status[Z]=0;
-	}
-	cpuObj->status[N] = (cpuObj->A&0x80)>>7;*/
 }
 
 void andF(CPU *cpuObj){
@@ -101,7 +85,7 @@ void aslF(CPU *cpuObj){
 
 void bccF(CPU *cpuObj){ //#90
 // Branch on C Clear
-	int operand = cpuObj->operand;
+	//int operand = cpuObj->operand;
 	if(cpuObj->status[C]==0){
 		cpuObj->branch();
 	}
@@ -109,7 +93,7 @@ void bccF(CPU *cpuObj){ //#90
 
 void bcsF(CPU *cpuObj){ //#B0
 // Branch on C Set
-	int operand = cpuObj->operand;
+	//int operand = cpuObj->operand;
 	if(cpuObj->status[C]==1){
 		cpuObj->branch();
 	}
@@ -117,7 +101,6 @@ void bcsF(CPU *cpuObj){ //#B0
 
 void beqF(CPU *cpuObj){//#F0
 // Branch on Result Zero
-	int operand = cpuObj->operand;
 	if(cpuObj->status[Z]==1){
 		cpuObj->branch();
 	}
@@ -126,8 +109,8 @@ void beqF(CPU *cpuObj){//#F0
 void bitF(CPU *cpuObj){
 // Test Bits in M with A
 	/* ZPAGE:#24, ABSOLUTE:#2C */
+	// TODO: is this correct?
 	uint8 memV = cpuObj->memory->read(cpuObj->operand);
-	int operand = cpuObj->operand;
 	if((cpuObj->A & memV) == 0){
 		cpuObj->status[Z]=1;
 	}
@@ -166,8 +149,8 @@ void brkF(CPU *cpuObj){ //#00
 // Force Break
 	//cpuObj->memory->write(cpuObj->sp--, cpuObj->pc);
 
-	uint8 pc_high = (cpuObj->pc+2 & 0xFF00) >> 8;
-	uint8 pc_low = cpuObj->pc+2 & 0x00FF;
+	uint8 pc_high = ((cpuObj->pc+2) & 0xFF00) >> 8;
+	uint8 pc_low = (cpuObj->pc+2) & 0x00FF;
 	cpuObj->memory->write(cpuObj->sp--, pc_high);
 	cpuObj->memory->write(cpuObj->sp--, pc_low);
 	cpuObj->push_status_to_Stack();//memory->write(cpuObj->sp--, cpuObj->P);
@@ -315,7 +298,7 @@ void jmpF(CPU *cpuObj){
 
 void jsrF(CPU *cpuObj){ //#20
 // Jump to Location Save Return Address
-	uint8 pc_high = (cpuObj->pc+2 & 0xFF00) >> 8;
+	uint8 pc_high = ((cpuObj->pc+2) & 0xFF00) >> 8;
 	uint8 pc_low = (cpuObj->pc+2) & 0x00FF;
 	cpuObj->memory->write(cpuObj->sp--, pc_high);
 	cpuObj->memory->write(cpuObj->sp--, pc_low);
@@ -478,7 +461,7 @@ void rorF(CPU *cpuObj){
 }
 void rtiF(CPU *cpuObj){ //#40
 // Return from Interrupt
-	uint8 P;
+	//uint8 P;
 	/*printf("\nSTACK:\n");
 	for (int i=cpuObj->sp; i<=0x1ff; i++){
 		printf("%x = %x\n", i, cpuObj->memory->read(i));
@@ -507,25 +490,10 @@ void sbcF(CPU *cpuObj){
 	else{
 		number = cpuObj->memory->read(cpuObj->operand);
 	}
-	uint8 a = cpuObj->A - number - (1 - cpuObj->status[C]);
-	int res = int(cpuObj->A) - int(number) - int(1 - cpuObj->status[C]);
 
-	//TODO: VER DIFF ENTRE Carry e OVERFLOW	(NESSE CASO CARRY EH BORROW
-	if(res>=0){
-		cpuObj->status[C] = 1;
-	}
-	else{
-	    cpuObj->status[C] = 0;
-	}
+	uint8 res = cpuObj->comp2Operation(cpuObj->A,number,'-',true);
 
-
-	if((((cpuObj->A|number)&0x80)!=0) && (((a|cpuObj->A)&0x80)!=0)){
-		cpuObj->status[V] = 1;
-	}
-	else{
-		cpuObj->status[V] = 0;
-	}
-	cpuObj->A = a;
+	cpuObj->A = res;
 	cpuObj->setSignalFlags(cpuObj->A);
 }
 
@@ -634,6 +602,73 @@ CPU::CPU(){
 	
 }
 
+
+//complement of 2 operations
+uint8 CPU::comp2Operation(uint8 n1, uint8 n2, char op, bool withcarry){
+	uint16 res16;
+	uint8 result, partial;
+	uint8 V1;
+	uint16 c = status[C];
+
+	printf("n1 = %x, n2 = %x\n",n1,n2);
+
+	if (op == '-'){
+		printf("~n2 = %x\n",~n2);
+		n2  = ~n2 + 1;
+		printf("-n2 = %x\n",n2);
+		c = ~c + 1;
+	}
+	if (withcarry){
+
+		partial = n1 + n2;
+		res16 = n1 + n2 + c;
+		result = (uint8) res16;                                                                                                                              
+
+		// Overflow flag
+		// http://www.6502.org/tutorials/vflag.html
+		if ((((n1^n2)&0x80)==0) && (((n1^partial)&0x80)==0x80)){
+			V1 = 1;
+		}
+		else{
+			V1 = 0;
+		}
+		if ((((partial^c)&0x80)==0) && (((partial^res16)&0x80)==0x80)){
+			status[V] = (V1 | 0x01);
+		}
+		else{
+			status[V] = (V1 | 0x00);
+		}
+	}
+	else {
+		res16 = n1 + n2;
+		result = (uint8) res16;
+		// Overflow flag
+		// http://www.6502.org/tutorials/vflag.html
+		if (((n1^n2)&0x80)==0 && ((n1^result)&0x80)==0x80){
+			status[V] = 1;
+		}
+		else{
+			status[V] = 0;
+		}
+	}
+	// Carry flag
+	// 
+	if (res16>0xFF){
+		status[C] = 1;
+	}
+	else{
+		status[C] = 0;
+	}
+
+	// Set N and Z
+	printf("n1 = %x, n2 = %x\n",n1,n2);
+	printf("res16 = %x, result = %x\n",res16,result);
+	setSignalFlags(result);
+	return result;
+}
+
+
+
 void CPU::compareElements(uint8 reg){
 	//TODO: SET CARRY FLAG, WHEN SHOULD IT BE SET HERE?
 	uint8 number;
@@ -643,7 +678,10 @@ void CPU::compareElements(uint8 reg){
 	else{
 		number = *memory->map[operand];
 	}
-	setPflag(C,0);
+	uint8 res = comp2Operation(number,reg,'+');
+	printf("COMP RES = %x\n",res);
+
+	/*setPflag(C,0);
 	if((reg - number)<0){
 		status[N]=1;
 		status[Z]=0;
@@ -655,7 +693,7 @@ void CPU::compareElements(uint8 reg){
 	else{
 		status[N]=0;
 		status[Z]=0;
-	}
+	}*/
 }
 
 void CPU::store_value(int addr, uint8 value){
@@ -749,6 +787,7 @@ void CPU::setPflag(int flagPos, uint8 value){
 
 int CPU::executeOpcode(){
 	jumpTable[opcode](this);
+	return 0;
 }
 
 void CPU::initialize(Memory *memP){
@@ -767,7 +806,7 @@ void CPU::initialize(Memory *memP){
 
 void CPU::executeNMI(){
 	// pushes the processor status register and return address on the stack
-	uint8 pc_high = (pc+2 & 0xFF00) >> 8;
+	uint8 pc_high = ((pc+2) & 0xFF00) >> 8;
 	uint8 pc_low = (pc+2) & 0x00FF;
 	memory->write(sp--, pc_high);
 	memory->write(sp--, pc_low);
@@ -804,11 +843,16 @@ int CPU::emulateCycles(int cycles){
 	}
 	//printf("\nPPUSTATUS emulate cycle = %x\n",ppustatus);
 	int cclock = 0;
+	char c1 = 's';
 	while(cclock < cycles){
 		int ret = fetchOpcode();
+		if (c1!='l'){
+			c1 = getchar();
+		}
 		cclock++;
 	}
 	//clock = 0;
+	return 0;
 }
 
 void CPU::reset(){
@@ -835,7 +879,7 @@ void CPU::push_status_to_Stack(){
 
 void CPU::pop_status_from_Stack(){
 	uint8 P = memory->read(++sp);
-	for(int i=0;i++;i<8){
+	for(int i=0;i<8;i++){
 		if(i!=5){
 			status[i] = (P>>i)&0x01;
 		}
@@ -900,7 +944,7 @@ int CPU::fetchOpcode(){
 			// Immediate
 			cout << "Mode: immediate\n";
 			operand = *memory->map[pc+1];
-			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
 			pc+=2;
 			break;
@@ -910,6 +954,7 @@ int CPU::fetchOpcode(){
 			operand = *memory->map[pc+1];
 			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=2;
 			break;
 		case zpageX:
@@ -920,6 +965,7 @@ int CPU::fetchOpcode(){
 			printf("operand = %x\n", operand);
 			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=2;
 			break;
 		case zpageY:
@@ -939,6 +985,7 @@ int CPU::fetchOpcode(){
 			operand = more_sig | less_sig;
 			printf("MEM[%x] = %x\n", operand, *memory->map[operand]);
 			jumpTable[opcode](this);
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=3;
 		}
 			break;
@@ -952,6 +999,7 @@ int CPU::fetchOpcode(){
 			operand += X;
 			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=3;
 		}
 			break;
@@ -965,6 +1013,7 @@ int CPU::fetchOpcode(){
 			operand += X;
 			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=3;
 		}
 			break;	
@@ -980,6 +1029,7 @@ int CPU::fetchOpcode(){
 			operand = *memory->map[pc+1];
 			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=2;
 			break;
 		case indirectX:
@@ -991,6 +1041,7 @@ int CPU::fetchOpcode(){
 			operand = more_sig | less_sig;
 			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=2;
 		}
 			break;
@@ -1004,6 +1055,7 @@ int CPU::fetchOpcode(){
 			operand += Y;
 			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=2;
 		}	
 			break;
@@ -1018,6 +1070,7 @@ int CPU::fetchOpcode(){
 			//operand += 0x8000;
 		    printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
+			printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=3;
 		}
 			break;

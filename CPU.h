@@ -52,6 +52,9 @@ class CPU{
 		CPU();
 		void initialize(Memory *memP);
 		int emulateCycles(int cycles);
+
+		uint8 comp2Operation(uint8 n1, uint8 n2, char op='+', bool withcarry=false);
+		
 		void executeNMI();
 		static int opcodeCycles[256];
 		static int opcodeSize[256];
