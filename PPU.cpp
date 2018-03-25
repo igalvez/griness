@@ -35,8 +35,8 @@ PPU::PPU(){
 }
 
 void PPU::initialize(Memory *mem){
-	
-	for (int i=0; i<8; i++){
+	int i = 0;
+	for (i=0; i<8; i++){
 		regs[i] = mem->map[0x2000 + i];
 		*regs[i] = 0;
 	}
@@ -45,6 +45,59 @@ void PPU::initialize(Memory *mem){
 	//row=0;
 	vblank_counter=0;
 	current_addr = start_addr;
+	mirroring = mem->cartridge->mirroring;
+	dots = 0;
+	scanline = 261;
+
+	//scanf("%d",&i);
+	/* Mapping VRAM */
+	printf("MAPPING VRAM \n");
+	for (int i=0; i<0x2000; i++){
+		map[i] = &VRAM[i];
+	}
+	//scanf("%d",&i);
+	/* Mirroring 
+	   0: Horizontal
+	   1: Vertical
+	   2: Four-Screen
+	  */
+
+	printf("MAPPING MIRRORING = %d \n", mirroring);
+	if (!mirroring){
+		for (i=0; i<0x400; i++){
+			map[0x2000+i] = &VRAM[0x2000 + i];
+			map[0x2400+i] = &VRAM[0x2000 + i];
+			map[0x2800+i] = &VRAM[0x2400 + i];
+			map[0x2C00+i] = &VRAM[0x2400 + i];
+			//VRAM[0x2800] = VRAM
+		}
+	}
+	else if(mirroring==1){
+		for (i=0; i<0x400; i++){
+			map[0x2000+i] = &VRAM[0x2000 + i];
+			map[0x2400+i] = &VRAM[0x2400 + i];
+			map[0x2800+i] = &VRAM[0x2000 + i];
+			map[0x2C00+i] = &VRAM[0x2400 + i];
+			//VRAM[0x2800] = VRAM
+		}
+	}
+
+	printf("MAPPING 3 \n");
+	for (i=0;i<0x0F00; i++){
+		map[0x3000 + i] = &VRAM[0x2000 + i];
+	}
+	printf("MAPPING 4\n");
+	for (i=0; i<0x20; i++){
+		map[0x3F00 + i] = &VRAM[0x2800 + i];
+	}
+	printf("MAPPING 5 \n");
+	for (i=0;i<0xE0;i++){
+		map[0x3F20 + i] = map[0x3F00 + i];
+	}
+	printf("MAPPING 6 \n");
+	for (i=0;i<0xC000;i++){
+		map[0x4000 + i] = map[i];
+	}
 
 	if (!initSDL()){
 		printf("Error initializing SDL");
@@ -55,7 +108,7 @@ void PPU::initialize(Memory *mem){
 
 
 uint8 PPU::readVRam(uint16 addr){
-	uint16 address = addr;
+	/*uint16 address = addr;
 	if (addr>=0x4000){
 		address = addr%0x4000;
 	}
@@ -74,12 +127,12 @@ uint8 PPU::readVRam(uint16 addr){
 	}
 	else{
 		address = 0;
-	}
-	return VRAM[address];
+	}*/
+	return *map[addr];
 }
 
 void PPU::writeVRam(uint16 addr, uint8 value){
-	uint16 address = addr;
+	/*uint16 address = addr;
 	if (addr>=0x4000){
 		address = addr%0x4000;
 	}
@@ -95,7 +148,9 @@ void PPU::writeVRam(uint16 addr, uint8 value){
 	}
 	else if(address<0x4000){
 		VRAM[(address%0x3f20) + 0x3f00] = value;
-	}
+	}*/
+
+	*map[addr] = value;
 	//return VRAM[address];
 }
 
@@ -153,7 +208,13 @@ void PPU::writeData(){
 void PPU::readData(){
 	//printf("\nPPU READ DATA \n");
 	*regs[7] = readVRam(current_addr);
-	current_addr++;
+	uint8 inc32 = (*regs[0]&0x04)>>2;
+	if (inc32){
+		current_addr += 32;
+	}
+	else {
+		current_addr++;
+	}
 }
 
 
@@ -179,7 +240,9 @@ void PPU::show_pattern_table(){
 
 //void PPU::clearVBL(){
 	
+/*void PPU::emulateCycle(){
 
+}*/
 
 
 void PPU::renderBackground(){
@@ -321,7 +384,7 @@ void PPU::renderBackground(){
 		executeNMI();
 		vblank_counter=1;
 		printf("RENDER \n");
-		
+	        screen_coord_y = 0;	
 		
 	}
 	SDL_RenderPresent(renderer);
@@ -485,6 +548,160 @@ void PPU::renderBackground(){
 	//executeNMI();
 }*/
 
+void PPU::showPixel(int colour_idx, int x, int y){
+	int rgb_colour;
+	int red, green, blue;
+	rgb_colour = palette_map[colour_idx];
+
+	red = (rgb_colour&0x00FF0000)>>16;
+	green = (rgb_colour&0x0000FF00)>>8;
+	blue = rgb_colour&0x000000FF;
+	showGraphics(red, green, blue, x, y);
+
+}
+
+void PPU::emulateCycle(int cycles){ 
+	
+	uint16 ntable_addr = 0x2000 + (*regs[0]&0x03)*0x400;
+	uint16 ptable_addr = 0x0000 + ((*regs[0]&0x10)>>4)*0x1000;
+	uint16 pindex; // pattern table index
+	uint8 inc = 1;
+	//uint16 init_addr = ptable_addr;
+	uint8 colour_idx = 0;
+	uint8 pbyte = 0;
+
+	if (*regs[0]&0x04==0x04){
+		inc = 32;
+	}
+
+	for (int i=0; i<cycles; i++){
+
+		/* Visible scanlines */
+		if (scanline<240){
+			/* Every 8 cycles new tile data is loaded into shift register*/
+			if (dots%8==0){
+				/* Getting background data from pattern tible (high and low bytes of tile data) */
+				pindex = readVRam(current_addr);
+				low_bg = (low_bg | readVRam(ptable_addr + pindex*16));
+				high_bg = (high_bg | readVRam(ptable_addr + pindex*16 + 8));
+				current_addr += inc; 
+			}
+			else if (dots>0){
+				colour_idx = (high_bg>>14) | (low_bg>>15);
+				high_bg <<= 1;
+				low_bg <<= 1;
+				//showPixel(colour_idx, dots, scanline);
+			}
+
+		}
+		else if (scanline<261) { //VBLANK
+
+			if ((scanline == 241) && (dots==1)){
+				//SET VBLANK
+				*regs[2] = *regs[2] | 0x80;
+			}
+		}
+		else {
+			if (dots==1){
+				// Clear VBLANK FLAG
+				*regs[2] = *regs[2]&0x7F;
+
+				if (scanline%8 == 0){
+					init_addr = ntable_addr + (scanline/8)*32;
+					pbyte =  scanline%8;
+					current_addr = init_addr;
+				}
+
+			}
+			else if (dots==2){
+				pindex = readVRam(current_addr);
+				low_bg = readVRam(ptable_addr + pindex*16);
+				high_bg = readVRam(ptable_addr + pindex*16 + 8);
+				low_bg <<= 8;
+				high_bg <<= 8;
+				current_addr += inc;
+			}
+			else if (dots==3){
+				pindex = readVRam(current_addr);
+				low_bg = low_bg | readVRam(ptable_addr + pindex*16);
+				high_bg = high_bg | readVRam(ptable_addr + pindex*16 + 8);
+				current_addr += inc;
+			}
+			//dots = 0;
+		}
+		dots++;
+
+		if (dots>340){
+			dots = 0;
+			scanline++;
+		}
+		if (scanline>261){
+			scanline = 0;
+			init_addr = ntable_addr;
+		}
+
+
+	}
+	printf("%d PPU cycles emulated\n", cycles);
+	printf("scanline = %d, dot = %d\n",scanline, dots);
+	//SDL_RenderPresent(renderer);
+
+}
+
+void PPU::showNameTables(){
+	uint16 ntables_addr[4] = {0x2000, 0x2400, 0x2800, 0x2C00};
+	uint16 ntable_size = 0x03C0;
+	int line, col, pixline, pixcol;
+	uint8 tile_idx, colour_idx, tile_addr;
+	uint16 ptable;
+	int rgb_colour[3];
+	int count = 0;
+	uint8 lower_data, higher_data;
+	uint8 temp;
+	int x =0;
+	int y = 0;
+
+	SDL_SetRenderDrawColor(renderer, 0xFF,0xFF,0xFF,0xFF);
+	SDL_RenderClear(renderer);
+	ptable = (0x0000 | ((*regs[0]&0x10)>>1));
+    //ptable=0x1000;
+	printf("PTABLE= %x\n", ptable);
+	int addr = 0x2000;
+	//for (int addr=0x2000; addr<0x2FC0; addr+=0x400){
+		//printf("table addr= %x\n", addr);
+		for (line=0; line<30; line++){
+			for (col=0;col<32;col++){
+
+				tile_idx = readVRam(addr+col*line);
+				tile_addr = tile_idx*0xF;
+				//printf("VRAM[%x] = %x\n", addr+col*line, tile_idx);
+
+				for (pixline=0; pixline<8; pixline++){
+					lower_data = readVRam(tile_addr + pixline + ptable);
+					higher_data = readVRam(tile_addr + pixline + 0x8 + ptable);
+					//colour_idx = ((higher_data&0x80)>>6)|((lower_data&0x80)>>7);
+					for (pixcol=0; pixcol<8; pixcol++){
+						//colour_idx = (tile_high&0x80)>>6;
+						colour_idx = ((higher_data&0x80)>>6)|((lower_data&0x80)>>7);
+						//printf("coulour_idx = %u, rgb_colour = %x\n",colour_idx, palette_map[colour_idx]);
+						rgb_colour[0] = (palette_map[colour_idx]&0x00FF0000)>>16;
+						rgb_colour[1] = (palette_map[colour_idx]&0x0000FF00)>>8;
+						rgb_colour[2] = (palette_map[colour_idx]&0x000000FF);
+						showGraphics(rgb_colour[0], rgb_colour[1], rgb_colour[2], x + col*8+pixcol, y+line*8+pixline);
+						lower_data <<= 1;
+						higher_data <<= 1;
+
+					}
+				}
+			}
+		}
+		y = 256*(count/2);
+		x = 240*(count%2);
+		count++;
+	//}
+	SDL_RenderPresent(renderer);
+
+}
 
 void PPU::showNameTable(uint16 ntb, uint16 ptb){
 
@@ -539,23 +756,36 @@ void PPU::showPatternTable(int addr){
 	uint8 green;
 	uint8 blue;
 	uint16 addr_low, addr_high;
+	uint8 tile_matrix[8][8];
 	SDL_SetRenderDrawColor(renderer, 0xFF,0xFF,0xFF,0xFF);
 	SDL_RenderClear(renderer);
 	//printf("0 MARK Is %x\n",readVRam(0x1000));
+	printf("IN SHOW PATTERN TABLE \n");
 	for(int i=0;i<=0x1000;i+=0x10){ //1C2
-
+ 
+ 		/*for (int line=0; line<8; line++){
+ 			addr_low = i+line+addr;
+			addr_high = i+line+addr+8;
+			tile_low = readVRam(addr_low);
+			tile_high = readVRam(addr_high);
+			temp2 = (tile_high<<1) | tile_low
+ 			
+ 		}*/
+    
 		//printf("ADDR %x = %x\n",i,readVRam(i+addr));
 		tile_line = i/((0x10)*0x10);
 		tile_col = (i/0x10)%0x10;
 		//printf("TILE LINE = %d\n",tile_line);
 		//printf("TILE COL = %d\n",tile_col);	
+		printf("\n%x > ",i+addr);
 
 		for(int line=0;line<8;line++){
+			printf("%x ", readVRam(i+line+addr));
 			addr_low = i+line+addr;
 			addr_high = i+line+addr+8;
 			tile_low = readVRam(i+line+addr);
 			tile_high = readVRam(i+line+addr+8);
-			temp2 = tile_high|tile_low;	
+			//temp2 = (tile_high<<1)|tile_low;	
 			/*printf("addr low  %x\n",addr_low);
 			printf("addr high %x\n",addr_high);
 			printf("tile_low %x\n",tile_low);
@@ -563,28 +793,55 @@ void PPU::showPatternTable(int addr){
 			printf("temp2 %x\n",temp2);*/
 			for(int col=0; col<8; col++){
 				
-					temp = tile_high&0x01;
-					colour_idx = (temp<<1)|(tile_low&0x01);
-					rgb_colour = palette_map[readVRam(BACKGROUND_PALETTE + colour_idx)];
+
+					temp = (tile_high&0x80)>>6;
+					colour_idx = temp | ((tile_low&0x80)>>7);
+					//temp = tile_high&0x01;
+					//colour_idx = (temp<<1)|(tile_low&0x01);
+
+					temp2 = (colour_idx );// | 0x8);//readVRam(BACKGROUND_PALETTE));
+					rgb_colour = palette_map[temp2];//readVRam(BACKGROUND_PALETTE + colour_idx)];
+					//rgb_colour = colour_idx<<8 | 2;
+
 					//printf("pos linha %d, coluna %d\n",tile_line*8+line, tile_col*8+col);
 					
-					tile_high = tile_high>>1;
-					tile_low >>= 1;	
+					tile_high = tile_high<<1;
+					tile_low <<= 1;	
 					
 					red = (rgb_colour&0x00FF0000)>>16;
 					green = (rgb_colour&0x0000FF00)>>8;
 					blue = rgb_colour&0x000000FF;
-					if((temp2&0x80)==0x80){
+
+					showGraphics(red, green, blue, tile_col*8+col, tile_line*8+line);
+
+
+					//printf("coulour_idx = %u, temp2 = %x, rgb_colour = %x\n",colour_idx, temp2, rgb_colour);
+
+					/*if (colour_idx==0){
+						showGraphics(0x00, 0x00, 0x00, tile_col*8+col, tile_line*8+line);
+					}
+					else if (colour_idx==1){
+						showGraphics(0xff, 0xff, 0xff, tile_col*8+col, tile_line*8+line);
+					}
+					else {
+						showGraphics(75, 0, 130, tile_col*8+col, tile_line*8+line);
+					}*/
+					//showGraphics(red, green, blue, tile_col*8+col, tile_line*8+line);
+					/*if((temp2&0x80)==0x80){
   						showGraphics(0x00, 0x00, 0x00, tile_col*8+col, tile_line*8+line);
 					}
 					else{
 						showGraphics(0xff, 0xff, 0xff, tile_col*8+col, tile_line*8+line);
 					}
-					temp2 = temp2<<1;
+					temp2 = temp2<<1;*/
 	        }	
+	        for(int line=0x8;line<0x10;line++){
+				printf("%x ", readVRam(i+line+addr));
+	        }
 		}		
 	}
 	SDL_RenderPresent(renderer);
+	printf("LEAVING SHOW PATTERN TABLE \n");
 }
 
 		

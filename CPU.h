@@ -42,6 +42,7 @@ class CPU{
 		uint16 opcode;
 		uint16 operand; // Help variable to store operands used by instruction
 		uint16 reset_vector;
+		bool on_nmi;
 		int executeOpcode();
 		int fetchOpcode();
 
@@ -57,6 +58,7 @@ class CPU{
 		
 		void executeNMI();
 		static int opcodeCycles[256];
+		static int opcodePageCycles[256];
 		static int opcodeSize[256];
 		static int opcodeMode[256];
 		
@@ -66,7 +68,8 @@ class CPU{
 		uint8 getPflag(int flagPos);
 		void setPflag(int flagPos, uint8 value);
 		void reset();
-		void branch();
+		int branch();
+
 
 		void push_status_to_Stack();
 		void pop_status_from_Stack();

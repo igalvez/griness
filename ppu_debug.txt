@@ -1,0 +1,4 @@
+24011 PPU WRITE 2007
+24060 for PPU addr write 2006 
+
+24066 -> debug

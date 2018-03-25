@@ -78,6 +78,8 @@ uint8 Memory::read(uint16 addr){
 	if(addr==0x2002){
 		//printf("READ %x, data= %x\n",addr,data);
 		*map[0x2002]&=0x7f; //CLEAR VBLANK Flag
+		*map[0x2005] = 0;
+		*map[0x2006] = 0;
 	}
 	return data;
 	
@@ -148,7 +150,7 @@ void Memory::loadGame(Cartridge &cart){
 	for(int i=0; i<PRG_BANK_SIZE; i++){
 		*map[i+0xC000] = cartridge->gameROM[i+lastBank];
 	}
-
+	ppuobj->initialize(this);
 	//transfering CHR data
 	if(cartridge->chr_banks>0){
 		int chr_begin = (cartridge->n_banks)*PRG_BANK_SIZE + 16;

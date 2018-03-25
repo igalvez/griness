@@ -18,7 +18,7 @@ class Console {
 		static bool exit_run;
 		Console();
 		void loadGame(Cartridge cart);
-		void run();
+		void run(bool debug=false);
 		void reset();
 };
 

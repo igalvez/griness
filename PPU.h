@@ -1,5 +1,5 @@
 #include "types.h"
-#include "VideoRAM.h"
+//#include "VideoRAM.h"
 #include <SDL2/SDL.h>
 
 #ifndef PPU_H
@@ -21,13 +21,22 @@ class PPU {
 		uint16 ioAddr;
 		uint8 ioData;
 		uint8 x_pixel;
-		uint8 VRAM[PPU_SIZE];
+		uint8 VRAM[VRAM_SIZE];
+		uint8 *map[PPU_SIZE];
 		uint8 SPRRAM[256];
+		uint8 mirroring;
 		int row;
 		int vblank_counter;
 		int screen_coord_x;
 		int screen_coord_y;
 		static unsigned int palette_map[64];
+
+		/*Internal registers */
+
+		uint16 low_bg, high_bg;
+		uint16 init_addr; // Start address of current scanline
+		uint8 low_palette, high_palette;
+		int scanline, dots;
 		
 	public:
 		//VideoRAM *RAM;
@@ -56,7 +65,9 @@ class PPU {
 		void paintGraphics();
 		void showPatternTable(int addr);
 		void showNameTable(uint16 ntb, uint16 ptb);
-		
+		void showNameTables();
+		void emulateCycle(int cycles);
+		void showPixel(int colour_idx, int x, int y);
 };
 
 

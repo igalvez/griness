@@ -23,6 +23,12 @@ bool Cartridge::loadGame(string gameName){
 	this->getMapper();
 	n_banks = gameROM[4];
 	chr_banks = gameROM[5];
+	if ((gameROM[6]&0x08)==0x08){
+		mirroring = 2;
+	}
+	else {
+		mirroring = gameROM[6]&0x01;
+	}
 	return true;
 }
 

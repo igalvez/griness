@@ -46,6 +46,7 @@ class Cartridge {
 		uint8 *gameROM;
 		Mapper mapper;
 		uint8 mapper_number;
+		uint8 mirroring;
 		bool loadGame(string gameName);
 		void getMapper();
 };
