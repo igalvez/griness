@@ -31,6 +31,7 @@ PPU::PPU(){
 	//this->RAM = new VideoRAM();
 	
 	current_addr = 0;
+	write_addr = 0;
 	start_addr = 0;
 }
 
@@ -44,7 +45,8 @@ void PPU::initialize(Memory *mem){
 	dmaReg = 0;
 	//row=0;
 	vblank_counter=0;
-	current_addr = start_addr;
+	write_addr = start_addr;
+	init_addr = 0x2000 + (*regs[0]&0x03)*0x400;
 	mirroring = mem->cartridge->mirroring;
 	dots = 0;
 	scanline = 261;
@@ -99,9 +101,9 @@ void PPU::initialize(Memory *mem){
 		map[0x4000 + i] = map[i];
 	}
 
-	if (!initSDL()){
+	/*if (!initSDL()){
 		printf("Error initializing SDL");
-	}
+	}*/
 	//*regs[0] = 0x9F;
 	
 }
@@ -149,8 +151,10 @@ void PPU::writeVRam(uint16 addr, uint8 value){
 	else if(address<0x4000){
 		VRAM[(address%0x3f20) + 0x3f00] = value;
 	}*/
-
+	//printf("PPU WRITE: writing data %x to address %x\n", value, addr);
 	*map[addr] = value;
+	//printf("map[%x] = %x\n", addr, value);
+
 	//return VRAM[address];
 }
 
@@ -181,39 +185,39 @@ void PPU::writeScroll(){
 
 void PPU::writeAddr(){
 	uint16 temp;
-	printf("\nPPU WRITE Addr\n");
+	//printf("\nPPU WRITE Addr\n");
 	temp = *regs[6];
 	if(!write_toggle){
-	// Write upper byte to current_addr
-		current_addr = (temp<<8) | (current_addr&0x00FF); 
+	// Write upper byte to write_addr
+		write_addr = (temp<<8) | (write_addr&0x00FF); 
 		write_toggle = 1;
 	}
 	else{
-		current_addr = temp | (current_addr&0xFF00);
+		write_addr = temp | (write_addr&0xFF00);
 		write_toggle = 0;
 	}
-	printf("addr %x\n", current_addr);
+	//printf("addr %x\n", write_addr);
 	//toggle();
 }
 
 void PPU::writeData(){
-	printf("\nPPU WRITE DATA \n");
-	printf("addr %x\n", current_addr);
-	uint16 addr = (current_addr&0x0FFF) + 0x2000;
-	printf("addr %x\n", addr);
-	writeVRam(addr,*regs[7]);
-	current_addr++;
+	//printf("\nPPU WRITE DATA \n");
+	//printf("addr %x\n", write_addr);
+	//uint16 addr = (write_addr&0x0FFF) + 0x2000;
+	//printf("addr %x\n", addr);
+	writeVRam(write_addr,*regs[7]);
+	//write_addr++; TODO: ON NON DEBUG CODE UNCOMMENT THIS!!!
 }
 
 void PPU::readData(){
 	//printf("\nPPU READ DATA \n");
-	*regs[7] = readVRam(current_addr);
+	*regs[7] = readVRam(write_addr);
 	uint8 inc32 = (*regs[0]&0x04)>>2;
 	if (inc32){
-		current_addr += 32;
+		write_addr += 32;
 	}
 	else {
-		current_addr++;
+		write_addr++;
 	}
 }
 
@@ -251,7 +255,7 @@ void PPU::renderBackground(){
 	uint8 tile_high;
 	//uint8 temp;
 	uint16 pattern_table_start = 0x0000;
-	uint16 attr_table_base = (current_addr&0x0FFF) + 0x2800 + 0x3C0;
+	uint16 attr_table_base = (write_addr&0x0FFF) + 0x2800 + 0x3C0;
 	
 
 	uint8 attr_table_byte;
@@ -267,7 +271,7 @@ void PPU::renderBackground(){
 
 	
 
-	if(vblank_counter>0){
+	/*if(vblank_counter>0){
 		if(vblank_counter<=20){
 			//printf("scanline %d\n",239+vblank_counter);
 			vblank_counter++;
@@ -275,25 +279,25 @@ void PPU::renderBackground(){
 			return;
 		}
 		vblank_counter=0;
-		current_addr = start_addr;
+		write_addr = start_addr;
 		screen_coord_y = 0;
 		//printf("BEGIN FRAME \n");
 		//SDL_SetRenderDrawColor(renderer, 0xFF,0xFF,0xFF,0xFF);
 		//SDL_RenderClear(renderer);
-	}	
+	}	*/
 	
 	/* VRAM address registers:
        FEDC BA98 7654 3210                  
 	   .yyy NNYY YYYX XXXX 
     */
- 	uint8 y = (current_addr&0x7000)>>12;
+ 	uint8 y = (write_addr&0x7000)>>12;
 
 	if(y==0){
 		
 		for(int col=0;col<32;col++){
 			//printf("SCANLINE 1 of tile %d\n",col);
 			 //readVRam(addr)*16
-			aux = (current_addr&0x0FFF) + 0x2000;
+			aux = (write_addr&0x0FFF) + 0x2000;
 			//printf("NAMETABLE ADDR = %x\n",aux);
 			//printf("prefix addr =%x\n",current_addr&0x0FFF);
 			tile_idx[col] = readVRam(aux)*16;
@@ -319,13 +323,13 @@ void PPU::renderBackground(){
 				screen_coord_x++;
 			}
 			x_pixel=0;
-			if ((current_addr&0x001F)==0x001F){ // If reached end of nametable, clean x scroll and switch bit 10 (nametable)
-				current_addr&=0xFFE0; 
-				current_addr = (~current_addr&0x0400) | (current_addr&0xFBFF);
-				//attr_table_base= current_addr&0x0FFF + 0x2000 + 0x3C0;
+			if ((write_addr&0x001F)==0x001F){ // If reached end of nametable, clean x scroll and switch bit 10 (nametable)
+				write_addr&=0xFFE0; 
+				write_addr = (~write_addr&0x0400) | (write_addr&0xFBFF);
+				//attr_table_base= write_addr&0x0FFF + 0x2000 + 0x3C0;
 			}
 			else{
-				current_addr++;
+				write_addr++;
 			}
 		}
 	}
@@ -352,39 +356,40 @@ void PPU::renderBackground(){
 				screen_coord_x++;
 			}
 			x_pixel=0;
-			if ((current_addr&0x001F)==0x001F){ // If reached end of nametable, clean x scroll and switch bit 10 (nametable)
-				current_addr&=0xFFE0; 
-				current_addr = (~current_addr&0x0400) | (current_addr&0xFBFF);
-				//attr_table_base= current_addr&0x0FFF + 0x2000 + 0x3C0;
+			if ((write_addr&0x001F)==0x001F){ // If reached end of nametable, clean x scroll and switch bit 10 (nametable)
+				write_addr&=0xFFE0; 
+				write_addr = (~write_addr&0x0400) | (write_addr&0xFBFF);
+				//attr_table_base= write_addr&0x0FFF + 0x2000 + 0x3C0;
 			}
 			else{
-				current_addr++;
+				write_addr++;
 			}
 		}
 	}	
 
 	//Set x back to initial coordinates so we can start at the beginning of next scanline		
-	current_addr = (start_addr&0x0C1F) | (current_addr&0xF3E0); 
-	current_addr += 0x1000;	
+	write_addr = (start_addr&0x0C1F) | (write_addr&0xF3E0); 
+	write_addr += 0x1000;	
 
 	if((y+1)>7){
-		current_addr &= 0x0FFF;
-		if((current_addr&0x03E0)==0x03E0){
+		write_addr &= 0x0FFF;
+		if((write_addr&0x03E0)==0x03E0){
 		 // End of nametable
 		 // Reset Y scroll and switch bit 11 (nametable)
-			current_addr&=0xFC1F; 
-			current_addr = (~current_addr&0x0800) | (current_addr&0xF7FF);
+			write_addr&=0xFC1F; 
+			write_addr = (~write_addr&0x0800) | (write_addr&0xF7FF);
 		}
 		else{
-			current_addr+=0x0020;
+			write_addr+=0x0020;
 		}
 	}
 	if(screen_coord_y>239){
 		row=0;
 		executeNMI();
-		vblank_counter=1;
+		//vblank_counter=1;
+
 		printf("RENDER \n");
-	        screen_coord_y = 0;	
+	    screen_coord_y = 0;	
 		
 	}
 	SDL_RenderPresent(renderer);
@@ -576,21 +581,42 @@ void PPU::emulateCycle(int cycles){
 
 	for (int i=0; i<cycles; i++){
 
+		//printf("scanline: %d, dots: %d, PPU addr = %x\n", scanline, dots, current_addr);
 		/* Visible scanlines */
 		if (scanline<240){
 			/* Every 8 cycles new tile data is loaded into shift register*/
-			if (dots%8==0){
+			if ((dots<256) && ((dots+1)%8==0)){
 				/* Getting background data from pattern tible (high and low bytes of tile data) */
 				pindex = readVRam(current_addr);
 				low_bg = (low_bg | readVRam(ptable_addr + pindex*16));
 				high_bg = (high_bg | readVRam(ptable_addr + pindex*16 + 8));
 				current_addr += inc; 
 			}
-			else if (dots>0){
+			else if (dots<256){
 				colour_idx = (high_bg>>14) | (low_bg>>15);
 				high_bg <<= 1;
 				low_bg <<= 1;
-				//showPixel(colour_idx, dots, scanline);
+				showPixel(colour_idx, dots, scanline);
+			}
+			else if (dots==256){
+				if ((scanline+1)%8==0){
+					init_addr = ntable_addr + ((scanline+1)/8)*32;
+				}
+				current_addr = init_addr;
+				pindex = readVRam(current_addr);
+				low_bg = readVRam(ptable_addr + pindex*16);
+				high_bg = readVRam(ptable_addr + pindex*16 + 8);
+				low_bg <<= 8;
+				high_bg <<= 8;
+				current_addr += inc;
+
+
+			}
+			else if (dots==257){
+				pindex = readVRam(current_addr);
+				low_bg = low_bg | readVRam(ptable_addr + pindex*16);
+				high_bg = high_bg | readVRam(ptable_addr + pindex*16 + 8);
+				current_addr += inc;
 			}
 
 		}
@@ -599,6 +625,7 @@ void PPU::emulateCycle(int cycles){
 			if ((scanline == 241) && (dots==1)){
 				//SET VBLANK
 				*regs[2] = *regs[2] | 0x80;
+				init_addr = ntable_addr;
 			}
 		}
 		else {
@@ -606,11 +633,11 @@ void PPU::emulateCycle(int cycles){
 				// Clear VBLANK FLAG
 				*regs[2] = *regs[2]&0x7F;
 
-				if (scanline%8 == 0){
+				/*if (scanline%8 == 0){
 					init_addr = ntable_addr + (scanline/8)*32;
-					pbyte =  scanline%8;
+					pbyte =  (scanline+1)%8;
 					current_addr = init_addr;
-				}
+				}*/
 
 			}
 			else if (dots==2){
@@ -637,14 +664,14 @@ void PPU::emulateCycle(int cycles){
 		}
 		if (scanline>261){
 			scanline = 0;
-			init_addr = ntable_addr;
+			//init_addr = ntable_addr;
 		}
 
 
 	}
-	printf("%d PPU cycles emulated\n", cycles);
-	printf("scanline = %d, dot = %d\n",scanline, dots);
-	//SDL_RenderPresent(renderer);
+	//printf("%d PPU cycles emulated\n", cycles);
+	//printf("scanline = %d, dot = %d\n",scanline, dots);
+	SDL_RenderPresent(renderer);
 
 }
 
@@ -666,15 +693,16 @@ void PPU::showNameTables(){
 	ptable = (0x0000 | ((*regs[0]&0x10)>>1));
     //ptable=0x1000;
 	printf("PTABLE= %x\n", ptable);
-	int addr = 0x2000;
+	int addr = 0x2C00;
 	//for (int addr=0x2000; addr<0x2FC0; addr+=0x400){
 		//printf("table addr= %x\n", addr);
 		for (line=0; line<30; line++){
+			printf("\n%4x> ", addr+line*32);
 			for (col=0;col<32;col++){
 
-				tile_idx = readVRam(addr+col*line);
+				tile_idx = readVRam(addr+col+line*32);   
 				tile_addr = tile_idx*0xF;
-				//printf("VRAM[%x] = %x\n", addr+col*line, tile_idx);
+				printf("%x ", tile_idx);
 
 				for (pixline=0; pixline<8; pixline++){
 					lower_data = readVRam(tile_addr + pixline + ptable);
@@ -698,7 +726,8 @@ void PPU::showNameTables(){
 		y = 256*(count/2);
 		x = 240*(count%2);
 		count++;
-	//}
+	////}
+	executeNMI();
 	SDL_RenderPresent(renderer);
 
 }
@@ -777,10 +806,10 @@ void PPU::showPatternTable(int addr){
 		tile_col = (i/0x10)%0x10;
 		//printf("TILE LINE = %d\n",tile_line);
 		//printf("TILE COL = %d\n",tile_col);	
-		printf("\n%x > ",i+addr);
+		//printf("\n%x > ",i+addr);
 
 		for(int line=0;line<8;line++){
-			printf("%x ", readVRam(i+line+addr));
+			//printf("%x ", readVRam(i+line+addr));
 			addr_low = i+line+addr;
 			addr_high = i+line+addr+8;
 			tile_low = readVRam(i+line+addr);
@@ -835,9 +864,9 @@ void PPU::showPatternTable(int addr){
 					}
 					temp2 = temp2<<1;*/
 	        }	
-	        for(int line=0x8;line<0x10;line++){
+	        /*for(int line=0x8;line<0x10;line++){
 				printf("%x ", readVRam(i+line+addr));
-	        }
+	        }*/
 		}		
 	}
 	SDL_RenderPresent(renderer);

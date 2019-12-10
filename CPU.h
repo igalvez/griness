@@ -1,8 +1,12 @@
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <iomanip>
 #include "types.h"
 #include "Memory.h"
 #include <stdio.h>
 
-using namespace std;
+//using namespace std;
 
 #ifndef CPU_H
 #define CPU_H
@@ -13,10 +17,12 @@ enum Pflags{
 	I,    // Interrupt inhibit, 0: IRQ and NMI get through, 1: just NMI
 	D,    // Decimal
 	B,    // Break flag? not used
-	V=6,  // Overflow
+	U,    // Always set (unsigned?)
+	V,    // Overflow
 	N     // Negative
 };
-	
+
+
 
 class CPU{
 	public:
@@ -27,6 +33,9 @@ class CPU{
 		uint8 Y;  // index register Y
 		uint8 P;  // Processor status - <NV-BDIZC>
 		uint8 status[8];
+		char stat_chart[8];// = {'n','v','u','b','d','i','z','c'};
+		uint8 test_stat;
+
 
 		//flags
 		/*
@@ -40,11 +49,12 @@ class CPU{
 		*/
 		Memory *memory;
 		uint16 opcode;
+		unsigned int addr_brk; // For debugging: create a breakpoint on specific address
 		uint16 operand; // Help variable to store operands used by instruction
 		uint16 reset_vector;
 		bool on_nmi;
 		int executeOpcode();
-		int fetchOpcode();
+		int fetchOpcode(std::string *str);
 
 		int cclock;
 
@@ -52,16 +62,19 @@ class CPU{
 	//public:
 		CPU();
 		void initialize(Memory *memP);
-		int emulateCycles(int cycles);
+		int emulateCycles(int cycles, std::string *str);
 
 		uint8 comp2Operation(uint8 n1, uint8 n2, char op='+', bool withcarry=false);
-		
+		uint8 sum_operation(uint8 n1, uint8 n2, bool withcarry=false);
+		uint8 sub_operation(uint8 n1, uint8 n2, bool withcarry=false);
+		uint8 check_overflow (uint8 n1, uint8 n2);
+
 		void executeNMI();
 		static int opcodeCycles[256];
 		static int opcodePageCycles[256];
 		static int opcodeSize[256];
 		static int opcodeMode[256];
-		
+
 		void compareElements(uint8 reg);
 		void store_value(int addr, uint8 value);
 		uint8 get_value(int addr);
@@ -71,7 +84,7 @@ class CPU{
 		int branch();
 
 
-		void push_status_to_Stack();
+		void push_status_to_Stack(bool isInt);
 		void pop_status_from_Stack();
 		void setSignalFlags(uint8 value);
 
