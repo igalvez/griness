@@ -1,7 +1,7 @@
 #include "CPU.h"
 #include "cpu_tests.h"
 #define PRG_OFFSET 0x8000
-#define DEBUG 0
+#define DEBUG 
 
 enum Modes{
 	accumulator,
@@ -27,6 +27,16 @@ long int inst_counter = 0;
 */
 
 
+char ascii_flag_map[8] = {
+	99,
+	122,
+	105,
+	100,
+	98,
+	117,
+	118,
+	110
+};
 
 
 bool pageCrossed(uint8 addr1, uint8 addr2){
@@ -40,8 +50,10 @@ int adcF(CPU *cpuObj){ //
 // Add Memory to Accumulator with Carry
 	//uint8 carry = cpuObj->getPflag(C)
 	uint16 res;
+	uint8 operand;
 	if(CPU::opcodeMode[cpuObj->opcode] == immediate){ //#69
-		res = cpuObj->sum_operation(cpuObj->A, cpuObj->operand, true);
+		operand = cpuObj->operand;
+		//res = cpuObj->sum_operation(cpuObj->A, cpuObj->operand, cpuObj->status[C]);
 		/*res = cpuObj->A + cpuObj->operand + cpuObj->status[C];
 		res = cpuObj->comp2Operation(cpuObj->A, cpuObj->operand, true);;*/
 
@@ -50,10 +62,13 @@ int adcF(CPU *cpuObj){ //
 	/* ZPAGE:#65, ZPAGEX:#75, ABSOLUTE:#6D, ABSOLUTEX:#7D
 	   ABSOLUTEY:#79, INDIRECTX:#61, INDIRECTY:#71
 	*/
-	   res = cpuObj->sum_operation(cpuObj->A, cpuObj->memory->read(cpuObj->operand), true);
+	   	operand = cpuObj->memory->read(cpuObj->operand);
+	   //res = cpuObj->sum_operation(cpuObj->A, cpuObj->memory->read(cpuObj->operand), cpuObj->status[C]);
 	    //res = cpuObj->comp2Operation(cpuObj->A, cpuObj->memory->read(cpuObj->operand), '+', true);
 	}
+	res = cpuObj->sum_operation(cpuObj->A, operand, cpuObj->status[C]);
 	cpuObj->setSignalFlags(res);
+	cpuObj->check_overflow(cpuObj->A, operand,res);
 	cpuObj->A = res;
 	return 0;
 }
@@ -87,7 +102,8 @@ int aslF(CPU *cpuObj){
 		//cpuObj->setPflag(C, cpuObj->memory->read(cpuObj->operand) >> 7);
 		aux = cpuObj->memory->read(cpuObj->operand);
 		cpuObj->status[C] = (aux&0x80)>>7;
-		cpuObj->memory->write(cpuObj->operand, aux<<1);
+		aux = aux<<1;
+		cpuObj->memory->write(cpuObj->operand, aux);
 	}
 	cpuObj->setSignalFlags(aux);
 	return 0;
@@ -173,13 +189,13 @@ int bplF(CPU *cpuObj){ //#10
 int brkF(CPU *cpuObj){ //#00
 // Force Break
 	//cpuObj->memory->write(cpuObj->sp--, cpuObj->pc);
-	cpuObj->pc += 1;
+	//cpuObj->pc += 1;
 	uint8 pc_high = ((cpuObj->pc+2) & 0xFF00) >> 8;
 	uint8 pc_low = (cpuObj->pc+2) & 0x00FF;
 	cpuObj->memory->write(cpuObj->sp--, pc_high);
 	cpuObj->memory->write(cpuObj->sp--, pc_low);
 	cpuObj->push_status_to_Stack(false);//memory->write(cpuObj->sp--, cpuObj->P);
-	cpuObj->pc = ((cpuObj->memory->read(0xfffe)<<8) | cpuObj->memory->read(0xffff)) -1;
+	cpuObj->pc = ((cpuObj->memory->read(0xffff)<<8) | cpuObj->memory->read(0xfffe)) -1;
 	cpuObj->status[I] = 1;
 	//cpuObj->pc = cpuObj->memory->read(cpuObj->operand) + PRG_ADDR - 3;
 	return 0;
@@ -311,7 +327,7 @@ int eorF(CPU *cpuObj){
 int incF(CPU *cpuObj){
 // Increment M by One
 /* ZPAGE:#E6, ZPAGEX:#F6, ABSOLUTE:#EE, ABSOLUTEX:#FE */
-	int memV = cpuObj->memory->read(cpuObj->operand);
+	uint8 memV = cpuObj->memory->read(cpuObj->operand);
 	cpuObj->memory->write(cpuObj->operand, memV + 1);
 	cpuObj->setSignalFlags(memV+1);
 	return 0;
@@ -411,10 +427,12 @@ int lsrF(CPU *cpuObj){
 		//printf("LSR ACCUMULATOR!!");
 	}
 	else{
-		int memV = cpuObj->memory->read(cpuObj->operand);
-		cpuObj->setPflag(C,(memV & 0x01));
-		cpuObj->memory->write(cpuObj->operand, memV >> 1);
-		cpuObj->setSignalFlags(memV>>1);
+		uint8 memV = cpuObj->memory->read(cpuObj->operand);
+		//cpuObj->setPflag(C,(memV & 0x01));
+		cpuObj->status[C] = memV & 0x01;
+		memV = memV >> 1;
+		cpuObj->memory->write(cpuObj->operand, memV);
+		cpuObj->setSignalFlags(memV);
 		//printf("LSR MEMORY!");
 	}
 	return 0;
@@ -442,7 +460,8 @@ int oraF(CPU *cpuObj){
 
 int phaF(CPU *cpuObj){ //#48
 //Push A on Stack
-	cpuObj->memory->write(cpuObj->sp--, cpuObj->A);
+	cpuObj->memory->write(cpuObj->sp, cpuObj->A);
+	cpuObj->updateSP(0);
 	return 0;
 
 	//--cpuObj->sp;
@@ -456,7 +475,8 @@ int phpF(CPU *cpuObj){ //#08
 
 int plaF(CPU *cpuObj){ //#68
 // Pull A from Stack
-	cpuObj->A = cpuObj->memory->read(++cpuObj->sp);
+	cpuObj->updateSP(1);
+	cpuObj->A = cpuObj->memory->read(cpuObj->sp);
 	cpuObj->setSignalFlags(cpuObj->A);
 	return 0;
 }
@@ -559,10 +579,11 @@ int sbcF(CPU *cpuObj){
 		number = cpuObj->memory->read(cpuObj->operand);
 	}
 
-	uint8 res = cpuObj->comp2Operation(cpuObj->A,number,'-',true);
-
+	uint8 res = cpuObj->sub_operation(cpuObj->A,number,cpuObj->status[C]);	
+	//uint8 res = cpuObj->comp2Operation(cpuObj->A,number,'-',true);
+	cpuObj->setSignalFlags(res);
+	cpuObj->check_overflow(cpuObj->A, ~number,res);
 	cpuObj->A = res;
-	cpuObj->setSignalFlags(cpuObj->A);
 	return 0;
 }
 
@@ -674,14 +695,14 @@ CPU::CPU(){
 	A = 0;
 	X = 0;
 	Y = 0;
-	P = 20;
+	P = 0;
 	addr_brk = 0;
 	operand = 0;
 	for(int i=0; i<8; i++){
 		status[i]=0;
 	}
-	status[U] = 1;
-	status[B] = 1;
+	//status[U] = 1;
+	//status[B] = 1;
 
 
 	//FOR DEBUG
@@ -693,67 +714,103 @@ CPU::CPU(){
 
 }
 
-uint8 CPU::check_overflow (uint8 n1, uint8 n2){
-	uint8 V = 0;
+inline void CPU::updateSP(int increase){
+	/* Stack pointer should wrap around if goes out of range 1FF-100 */
+	if (increase){
+		sp++;
+	}
+	else {
+		sp--;
+	}
+	sp = (sp&0x01ff) | 0x0100;
+}
 
-	// Check if n1 and n2 have same signals. Different signals will never overflow
+uint8 CPU::check_overflow (uint8 n1, uint8 n2, uint8 res){
+	uint8 vflag = 0;
+	uint16 sres;
+	/*
+		http://www.6502.org/tutorials/vflag.html
+		http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+	*/	
+	// Cheating here to set overflow flag :P
+	/*sres = (sint8)n1 + (sint8)n2 + (sint8)c;
+
+	if ((sres > 127)||(sres<-128)){
+		V = 1;
+	}*/
+	if ((((n1^n2)&0x80)==0) && (((n1^res)&0x80)==0x80)){
+		vflag = 1;
+	}
+	status[V] = vflag;
+	//printf("Checking overflow for %x + %x = %x\n",n1,n2,res);
+	//printf("status[V] = %u, V = %u\n", status[V],vflag);
+
+	return vflag;
+
+
+	/* Overflow condition on different sign cases
+
+	n1 | n2 | c | V condition
+	 + | +  | + | n1 + n2 + c > 0x7f (127 decimal)
+	 + | +  | - | (n1!=0 and n2!=0) && (n1 + n2 + c > 0x7f (127 decimal))
+	 + | -  | + | never
+	 + | -  | - | n1 + n2 + c > 0xff (-128 decimal)
+	 - | +  | + | never
+	 - | +  | - | n1 + n2 + c > 0xff (-128 decimal)
+	 - | -  | + | n1 + n2 + c > 0xff (-128 decimal)
+	 - | -  | - | n1 + n2 + c > 0xff (-128 decimal)
+	 
+
+	// Check if n1 and n2 have same signals.
 	if (((n1^n2)&0x80)==0) { 
 		//printf("Same signals \n");
 		// Check negative number overflow
 		if ((n1&0x80)==0x80) {
-			if ((n1+n2)>0xff)
+			if ((n1+n2+c)>0xff)
 				V = 1;		
 		}
 		else {
 			// Check positive number overflow
-			if ((n1+n2)>0x7f)
+			if ((n1!=0)&&(n2!=0)&&(n1+n2+c)>0x7f)
 				V = 1;
 		}
 	}
-	return V;
+	else if ((n1+n2+c)>0xff){
+		// For different signals it will only overflow on negative results
+		V = 1;
+	}/*
+
+	return V;*/
 }
 
-uint8 CPU::sum_operation(uint8 n1, uint8 n2, bool withcarry){
-	uint8 v1, res;
-	uint8 c1 = 0;
+uint8 CPU::sum_operation(uint8 n1, uint8 n2, uint8 carry){
+	uint8 res;
 
-	/* Do flags first */
-	v1 = check_overflow(n1,n2);
-	if (n1+n2>0xff){
-		c1 = 1;
+	//status[V] = check_overflow(n1,n2,carry);
+
+	if ((n1+n2+carry)>0xff){
+		status[C] = 1;
 	}
-	res = n1 + n2;
-	if (withcarry){
-		v1 = v1 | check_overflow(res,status[C]);
-		if ((res + status[C])>0xff){
-			c1 = 1;
-		}
-		res += status[C];
+	else {
+		status[C] = 0;
 	}
-	status[V] = v1;
-	status[C] = c1;
+
+	res = n1 + n2 + carry;
 	return res;
 }
 
 
-uint8 CPU::sub_operation(uint8 n1, uint8 n2, bool withcarry){
-	uint8 v1, res,carry;
-	uint8 c1 = status[C];
 
-	//carry = c1;
+uint8 CPU::sub_operation(uint8 n1, uint8 n2, uint8 carry){
+	uint8 v1, res,c1;
+	/* For subtraction we just need to invert the bits of n2 and add them
+	   together with n1 and the carry (inverted borrow)
+	   Subtraction operations should always start with the carry flag set
+	   it is the ROM's job to set that flag before starting a subtraction.
+	*/
+	n2 = ~n2; 
 
-	// Two's complement to make n2 into -n2
-	n2 = ~n2 + 1;
-	c1 = ~c1 + 1;
-
-	res = sum_operation(n1,n2);
-	v1 = status[V];
-	carry = status[C];
-	res = sum_operation(res,c1);
-
-	status[V] |= v1;
-	status[C] |= carry;
-
+	res = sum_operation(n1,n2,carry);
 	return res;
 }
 //complement of 2 operations
@@ -832,7 +889,11 @@ void CPU::compareElements(uint8 reg){
 	else{
 		number = *memory->map[operand];
 	}
-	uint8 res = comp2Operation(reg,number,'-');
+	uint8 res = sub_operation(reg,number,1);
+	setSignalFlags(res);
+
+	//printf("compare res = %x\n", res);
+	//comp2Operation(reg,number,'-');
 	//setSignalFlags(res);
 	//printf("COMP RES = %x\n",res);
 
@@ -878,6 +939,28 @@ int (*jumpTable[256])(CPU *cpuObj) ={
 	cpxF, sbcF, nopF, nopF, cpxF, sbcF, incF, nopF, inxF, sbcF, nopF, nopF, cpxF, sbcF, incF, nopF, //E
 	beqF, sbcF, nopF, nopF, nopF, sbcF, incF, nopF, sedF, sbcF, nopF, nopF, nopF, sbcF, incF, nopF  //F
 	//0 ,  1  ,  2  ,  3  ,  4  ,  5  ,  6  ,  7  ,  8  ,  9  ,  A  ,  B  ,  C  ,  D  ,  E  ,  F
+
+};
+
+std::string CPU::opcodeNameTable[256] = 
+{
+	"BRK", "ORA", "NOP", "NOP", "NOP", "ORA", "ASL", "NOP", "PHP", "ORA", "ASL", "NOP", "NOP", "ORA", "ASL", "NOP", //0
+	"BPL", "ORA", "NOP", "NOP", "NOP", "ORA", "ASL", "NOP", "CLC", "ORA", "NOP", "NOP", "NOP", "ORA", "ASL", "NOP", //1
+	"JSR", "AND", "NOP", "NOP", "BIT", "AND", "ROL", "NOP", "PLP", "AND", "ROL", "NOP", "BIT", "AND", "ROL", "NOP", //2
+	"BMI", "AND", "NOP", "NOP", "NOP", "AND", "ROL", "NOP", "SEC", "AND", "NOP", "NOP", "NOP", "AND", "ROL", "NOP", //3
+	"RTI", "EOR", "NOP", "NOP", "NOP", "EOR", "LSR", "NOP", "PHA", "EOR", "LSR", "NOP", "JMP", "EOR", "LSR", "NOP", //4
+	"BVC", "EOR", "NOP", "NOP", "NOP", "EOR", "LSR", "NOP", "CLI", "EOR", "NOP", "NOP", "NOP", "EOR", "LSR", "NOP", //5
+	"RTS", "ADC", "NOP", "NOP", "NOP", "ADC", "ROR", "NOP", "PLA", "ADC", "ROR", "NOP", "JMP", "ADC", "ROR", "NOP", //6
+	"BVS", "ADC", "NOP", "NOP", "NOP", "ADC", "ROR", "NOP", "SEI", "ADC", "NOP", "NOP", "NOP", "ADC", "ROR", "NOP", //7
+	"NOP", "STA", "NOP", "NOP", "STY", "STA", "STX", "NOP", "DEY", "NOP", "txa", "NOP", "STY", "STA", "STX", "NOP", //8
+	"BCC", "STA", "NOP", "NOP", "STY", "STA", "STX", "NOP", "TYA", "STA", "TXS", "NOP", "NOP", "STA", "NOP", "NOP", //9
+	"LDY", "LDA", "LDX", "NOP", "LDY", "LDA", "LDX", "NOP", "TAY", "LDA", "TAX", "NOP", "LDY", "LDA", "LDX", "NOP", //A
+	"BCS", "LDA", "NOP", "NOP", "LDY", "LDA", "LDX", "NOP", "CLV", "LDA", "TSX", "NOP", "LDY", "LDA", "LDX", "NOP", //B
+	"CPY", "CMP", "NOP", "NOP", "CPY", "CMP", "DEC", "NOP", "INY", "CMP", "DEX", "NOP", "CPY", "CMP", "DEC", "NOP", //C
+	"BNE", "CMP", "NOP", "NOP", "NOP", "CMP", "DEC", "NOP", "CLD", "CMP", "NOP", "NOP", "NOP", "CMP", "DEC", "NOP", //D
+	"CPX", "SBC", "NOP", "NOP", "CPX", "SBC", "INC", "NOP", "INX", "SBC", "NOP", "NOP", "CPX", "SBC", "INC", "NOP", //E
+	"BEQ", "SBC", "NOP", "NOP", "NOP", "SBC", "INC", "NOP", "SED", "SBC", "NOP", "NOP", "NOP", "SBC", "INC", "NOP"  //
+	//0 ,  1  ,  2  ,  3  ,  4  ,  5  ,  6  ,  7  ,  8  ,  9  ,  A  ,  B  ,  C  ,  D  ,  E  ,  
 
 };
 
@@ -1094,7 +1177,7 @@ int CPU::emulateCycles(int cycles, std::string *str){
 		}
 		ncycles += aux;
 		//printf("curr_addr = %x\n", curr_addr);
-		if (DEBUG){
+		/*#ifdef DEBUG
 			if ((addr_brk==0)||(addr_brk==curr_addr)){
 				printf("next: ");
 				scanf("%x",&addr_brk);
@@ -1104,7 +1187,7 @@ int CPU::emulateCycles(int cycles, std::string *str){
 				printf("addr_brk = %x\n", addr_brk);
 				//getchar();
 			}
-		}
+		#endif*/
 		//c1 = getchar();
 		//printf("ncycle %ld\n\n", ncycles);
 		/*if (c1!='l'){
@@ -1136,6 +1219,7 @@ void CPU::push_status_to_Stack(bool isInt){
 	for(int i=0;i<8;i++){
         P |= (status[i]<<i);
     }
+    P |= 0x30;
 
 	/*uint8 bit4 = 1;
 	if (isInt){
@@ -1149,18 +1233,20 @@ void CPU::push_status_to_Stack(bool isInt){
 			P |= (status[i]<<i);
 		}
 	}*/
-	memory->write(sp--, P);
+	memory->write(sp, P);
+	updateSP(0);
 }
 
 void CPU::pop_status_from_Stack(){
-	uint8 P = memory->read(++sp);
+	updateSP(1);
+	uint8 P = memory->read(sp);
 	for(int i=0;i<8;i++){
-		if(i!=5){
-			status[i] = (P>>i)&0x01;
-		}
+		//if(i!=5){
+		status[i] = (P>>i)&0x01;
+		//}
 	}
-	status[U] = 1;
-	status[B] = 1;
+	//status[U] = 1;
+	//status[B] = 1;
 }
 
 int CPU::fetchOpcode(std::string *str){
@@ -1170,11 +1256,11 @@ int CPU::fetchOpcode(std::string *str){
 	uint8 ppuctrl = *memory->map[0x2000];
 	opcode = *memory->map[pc];
 	mode = opcodeMode[opcode];
-	int aux = 0;
+	uint16 aux = 0;
 	int cycles = opcodeCycles[opcode];
 	bool pcross = false;
 	uint16 gpc = pc;
-	char buff1[100];
+	char buff1[300];
 	char buff2[30];
 	//char pval[8];
 	std::string pval;
@@ -1182,13 +1268,15 @@ int CPU::fetchOpcode(std::string *str){
 	uint8 stat1;
 	uint8 result;
 	char letter;
+	char status_flags[9];
+
 	//printf("opcode cycle = %d\n",cycles);
 	//printf("OPCODE MODE IS %d\n",mode);
 	//printf("$%X: %X\n",pc,opcode)
 
 
 
-	if (str!=NULL){
+	/*if (str!=NULL){
 		//message.write((const char*)&a, sizeof(a));
 		//sstr.write("A"(const char*))
 		j = 0;
@@ -1208,7 +1296,7 @@ int CPU::fetchOpcode(std::string *str){
 		//pval[9] = '\0';
 		sprintf(buff1,"A:%02X X:%02X Y:%02X S:%02X P:%s $%04X:%02X ",A,X,Y,(sp-0x100),pval.c_str(),pc,opcode);
 		str->append(buff1);
-	}
+	}*/
 
 		/**str << "A:" << std::hex << (const char*)A;//<< std::hex << std::uppercase << std::setfill('0') << std::setw(2) << A;
 		*str << " X:" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << X;
@@ -1229,8 +1317,26 @@ int CPU::fetchOpcode(std::string *str){
 
 	//printf("$%X:%x \n", pc,opcode);
 
-	if (DEBUG) {
-		printf("OPCODE = %X\n", opcode);
+	#ifdef DEBUG
+		debug_str.clear();
+		/*int idx=0;
+		printf("A:%X X:%X Y:%X S:%X ",A,X,Y,sp);
+		printf("P:");
+		for(idx=7;idx>=0;idx--){
+			printf("%c", ascii_flag_map[idx] - status[idx]*32);
+		}
+		printf("				");
+
+		printf("$%x:%x ",pc,opcode);*/
+		for (int i=7; i>=0; i--){
+			status_flags[7-i] = ascii_flag_map[i] - status[i]*32;
+		}
+		status_flags[8] = '\0';
+		sprintf(buff1,"A:%02X X:%02X Y:%02X S:%02X P:%s $%04X:%02X ",A,X,Y,sp,status_flags,pc,opcode);
+		debug_str.append(buff1);
+		//printf("1FF = %02X\n",*memory->map[0x1ff]);
+		//printf("%s",debug_str.c_str());
+		/*printf("OPCODE = %X\n", opcode);
 		printf("pc = %x \n", pc);
 		printf("sp = %x \n", sp);
 		printf("P = %x \n", P);
@@ -1248,8 +1354,8 @@ int CPU::fetchOpcode(std::string *str){
 		printf("D=%d\n",status[D]); //3
 		printf("I=%d\n",status[I]); //2
 		printf("Z=%d\n",status[Z]); //1
-		printf("C=%d\n",status[C]); //0
-	}
+		printf("C=%d\n",status[C]); //0*/
+	#endif
 	
 
 /*
@@ -1273,22 +1379,30 @@ int CPU::fetchOpcode(std::string *str){
 	switch(mode){
 		case accumulator:
 			// Accumulator
-			if (DEBUG)
-				cout << "Mode: accumulator\n";
+			//if (DEBUG)
+				//cout << "Mode: accumulator\n";
 			operand = -2;
 			jumpTable[opcode](this);
+			#ifdef DEBUG
+			sprintf(buff1,"%s", opcodeNameTable[opcode].c_str());
+			#endif
 			pc+=1;
 			break;
 		case immediate:
 			// Immediate
 			operand = *memory->map[pc+1];
-			if (DEBUG){
-				cout << "Mode: immediate\n";
+			/*#ifdef DEBUG
+				printf("%x ",operand);
+				/*cout << "Mode: immediate\n";
 				printf("operand = %x\n",operand);
-			}
+			#endif*/
 			result = memory->read(operand);
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
+
+			#ifdef DEBUG
+			sprintf(buff1,"%02X %s #$%02X", operand, opcodeNameTable[opcode].c_str(), operand);
+			#endif
 			pc+=2;
 			break;
 		case zpage:
@@ -1299,58 +1413,79 @@ int CPU::fetchOpcode(std::string *str){
 		
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
-			if (DEBUG) {
-				cout << "Mode: zpage\n";
+
+			#ifdef DEBUG
+			sprintf(buff1,"%02X %s $%04X = #$%02X", operand, opcodeNameTable[opcode].c_str(), operand, result);
+			#endif
+			/*if (DEBUG) {
+				printf("%x ",operand);
+				/*cout << "Mode: zpage\n";
 				printf("MEM[%x] = %x\n", operand, result);
-				printf("MEM[%x] = %x\n", operand, memory->read(operand));
-			}
+				printf("MEM[%x] = %x\n", operand, memory->read(operand));*
+			}*/
 			pc+=2;
 			break;
 		case zpageX:
 			// Indexed Zero Page with X
 			//cout << "Mode: zpageX\n";
-			operand = *memory->map[pc+1] + X;
+			operand = (*memory->map[pc+1] + X)&0x00ff;
 			result = memory->read(operand);
 			//printf("operand = %x\n", operand);
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
-			if (DEBUG){
+
+			#ifdef DEBUG
+			sprintf(buff1,"%02X %s $%04X,X @ $%04X = #$%02X", *memory->map[pc+1], 
+				    opcodeNameTable[opcode].c_str(), *memory->map[pc+1], operand, result);
+			#endif
+			/*if (DEBUG){
 				cout << "Mode: zpageX\n";
 				printf("operand = %x\n", operand);
 				printf("MEM[%x] = %x\n", operand, result);
 				printf("MEM[%x] = %x\n", operand, memory->read(operand));
-			}
+			}*/
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=2;
 			break;
 		case zpageY:
 			// Indexed Zero Page with Y
 			//cout << "Mode: zpageY\n";
-			operand = *memory->map[pc+1] + Y;
+			operand = (*memory->map[pc+1] + Y)&0x00ff;
 			result = memory->read(operand);
 			//printf("operand = %x\n", operand);
-			if (DEBUG){
+			/*if (DEBUG){
 				cout << "Mode: zpageY\n";
 				printf("operand = %x\n", operand);
-			}
+			}*/
 			jumpTable[opcode](this);
+			#ifdef DEBUG
+			sprintf(buff1,"%02X %s $%04X,Y @ $%04X = #$%02X", *memory->map[pc+1], 
+				    opcodeNameTable[opcode].c_str(), *memory->map[pc+1], operand, result);
+			#endif
 			pc+=2;
 			break;
 		case absolute:
 			// Absolute
 		{
 			//cout << "Mode: absolute\n";
-			int less_sig = *memory->map[pc+1];
-			int more_sig = *memory->map[pc+2] << 8;
+			//printf("%04X memory->map[pc+1] = %X , memory->map[pc+2] = %X\n", operand, *memory->map[pc+1], *memory->map[pc+2]);
+			uint8 pc1 = *memory->map[pc+1];
+			uint8 pc2 =  *memory->map[pc+2];
+			uint16 less_sig = *memory->map[pc+1];
+			uint16 more_sig = *memory->map[pc+2] << 8;
 			operand = more_sig | less_sig;
 			result = memory->read(operand);
 			//printf("MEM[%x] = %x\n", operand, *memory->map[operand]);
 			jumpTable[opcode](this);
-			if (DEBUG){
+			/*if (DEBUG){
 				cout << "Mode: absolute\n";
 				printf("MEM[%x] = %x\n", operand, result);
 				printf("MEM[%x] = %x\n", operand, memory->read(operand));
-			}
+			}*/
+			#ifdef DEBUG
+			sprintf(buff1,"%02X %02X %s $%04X = #$%02X absolute", pc1,pc2,
+				    opcodeNameTable[opcode].c_str(), operand, result);
+			#endif
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=3;
 		}
@@ -1359,8 +1494,8 @@ int CPU::fetchOpcode(std::string *str){
 			// Indexed Absolute X:
 		{
 			//cout << "Mode: absoluteX\n";
-			int less_sig = *memory->map[pc+1];
-			int more_sig = *memory->map[pc+2]<<8;
+			uint16 less_sig = *memory->map[pc+1];
+			uint16 more_sig = *memory->map[pc+2]<<8;
 			aux = more_sig | less_sig;
 			operand = aux + X;
 			result = memory->read(operand);
@@ -1368,11 +1503,15 @@ int CPU::fetchOpcode(std::string *str){
 			//printf("pc %x: %x\n",(pc+2),*memory->map[pc+2]);
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
-			if (DEBUG){
+			/*if (DEBUG){
 				cout << "Mode: absolute\n";
 				printf("MEM[%x] = %x\n", operand, result);
 				printf("MEM[%x] = %x\n", operand, memory->read(operand));
-			}
+			}*/
+			#ifdef DEBUG
+			sprintf(buff1,"%02X %02X %s $%04X,X @ $%04X = #$%02X absolute X", less_sig, *memory->map[pc+2], 
+				    opcodeNameTable[opcode].c_str(), aux, operand, result);
+			#endif
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pcross = pageCrossed(aux, operand);
 			pc+=3;
@@ -1382,8 +1521,8 @@ int CPU::fetchOpcode(std::string *str){
 			// Indexed Absolute Y
 		{
 			//cout << "Mode: absoluteY\n";
-			int less_sig = *memory->map[pc+1];
-			int more_sig = *memory->map[pc+2]<<8;
+			uint16 less_sig = *memory->map[pc+1];
+			uint16 more_sig = *memory->map[pc+2]<<8;
 			aux = more_sig | less_sig;
 			operand =  aux + Y;
 			result = memory->read(operand);
@@ -1391,11 +1530,15 @@ int CPU::fetchOpcode(std::string *str){
 			//printf("pc %x: %x\n",(pc+2),*memory->map[pc+2]);
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
-			if (DEBUG){
+			/*if (DEBUG){
 				cout << "Mode: absolute\n";
 				printf("MEM[%x] = %x\n", operand, result);
 				printf("MEM[%x] = %x\n", operand, memory->read(operand));
-			}
+			}*/
+			#ifdef DEBUG
+			sprintf(buff1,"%02X %02X %s $%04X,Y @ $%04X = #$%02X", less_sig, *memory->map[pc+2], 
+				    opcodeNameTable[opcode].c_str(), aux, operand, result);
+			#endif
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pcross = pageCrossed(aux, operand);
 			pc+=3;
@@ -1403,10 +1546,13 @@ int CPU::fetchOpcode(std::string *str){
 			break;
 		case implied:
 			// Implied
-			if (DEBUG)
-				cout << "Mode: Implied\n";
+			/*if (DEBUG)
+				cout << "Mode: Implied\n";*/
 			//operand = -1;
 			jumpTable[opcode](this);
+			#ifdef DEBUG
+			sprintf(buff1,"%s", opcodeNameTable[opcode].c_str());
+			#endif
 			pc+=1;
 			break;
 		case relative:
@@ -1415,11 +1561,15 @@ int CPU::fetchOpcode(std::string *str){
 			result = memory->read(operand);
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			cycles += jumpTable[opcode](this);
-			if (DEBUG){
+
+			#ifdef DEBUG
+			sprintf(buff1,"%02X %s $%04X", operand, opcodeNameTable[opcode].c_str(), ((uint8) pc + operand));
+			#endif
+			/*if (DEBUG){
 				cout << "Mode: relative\n";
 				printf("MEM[%x] = %x\n", operand, result);
 				printf("MEM[%x] = %x\n", operand, memory->read(operand));
-			}
+			}*/
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pc+=2;
 			break;
@@ -1427,18 +1577,25 @@ int CPU::fetchOpcode(std::string *str){
 			// Pre-indexed indirect, X
 		{
 			//cout << "Mode: indirectX\n";
-			int less_sig = *memory->map[*memory->map[pc+1]+X];
-			int more_sig = *memory->map[*memory->map[pc+1]+X+1] << 8;
+			aux = *memory->map[pc+1];
+			uint16 less_sig = *memory->map[(*memory->map[pc+1]+X)&0x00ff];
+			uint16 more_sig = *memory->map[(*memory->map[pc+1]+X+1)&0x00ff] << 8;
 			operand = more_sig | less_sig;
 			result = memory->read(operand);
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
-			if (DEBUG){
+			/*if (DEBUG){
 				cout << "Mode: indirectX\n";
 				printf("MEM[%x] = %x\n", operand, result);
 				printf("MEM[%x] = %x\n", operand, memory->read(operand));
-			}	
+			}*/
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
+			#ifdef DEBUG
+			sprintf(buff1,"%02X %s ($%02X,X) @$%04X = #$%02X indirect X", aux, 
+				    opcodeNameTable[opcode].c_str(),aux, operand, result);
+			//sprintf(buff1,"%02X %02X %s $%04X = #$%02X indirect X", less_sig, *memory->map[*memory->map[pc+1]+X+1], 
+			//	    opcodeNameTable[opcode].c_str(), operand, result);
+			#endif
 			pc+=2;
 		}
 			break;
@@ -1446,22 +1603,30 @@ int CPU::fetchOpcode(std::string *str){
 			// Post-indexed indirect, Y
 		{
 			//cout << "Mode: indirectY\n";
-
-			int less_sig = *memory->map[*memory->map[pc+1]];
-			int more_sig = *memory->map[*memory->map[pc+1]+1] << 8;
-			aux = more_sig | less_sig;
-			operand = aux + Y;
+			aux = *memory->map[pc+1];
+			uint16 less_sig = *memory->map[*memory->map[pc+1]&0x00ff];
+			uint16 more_sig = *memory->map[(*memory->map[pc+1]+1)&0x00ff] << 8;
+			//aux = more_sig | less_sig;
+			operand = (more_sig | less_sig) + Y;
 			result = memory->read(operand);
 			//printf("xx: MEM[%x] = %x\n", *memory->map[pc+1], less_sig);
 			//printf("yy: MEM[%x] = %x\n", *memory->map[pc+1]+1, more_sig);
 			//printf("aux= %x\n", aux);
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
-			if (DEBUG){
+
+			#ifdef DEBUG
+			sprintf(buff1,"%02X %s ($%02X,X) @$%04X = #$%02X indirect Y", aux, 
+				    opcodeNameTable[opcode].c_str(),aux, operand, result);
+			//sprintf(buff1,"%02X %02X %s $%04X = #$%02X indirect Y", less_sig, *memory->map[*memory->map[pc+1]+1], 
+			//	    opcodeNameTable[opcode].c_str(), operand, result);
+			#endif
+			/*if (DEBUG){
 				cout << "Mode: indirectX\n";
 				printf("MEM[%x] = %x\n", operand, result);
 				printf("MEM[%x] = %x\n", operand, memory->read(operand));
-			}	
+			}*/
+
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			pcross = pageCrossed(aux, operand);
 			pc+=2;
@@ -1470,8 +1635,8 @@ int CPU::fetchOpcode(std::string *str){
 		case absoluteIndirect:
 			// Absolute Indirect
 		{
-			cout << "Mode: absoluteIndirect\n";
-			int pointer = (*memory->map[pc+2] << 8) | *memory->map[pc+1];
+			//cout << "Mode: absoluteIndirect\n";
+			uint16 pointer = (*memory->map[pc+2] << 8) | *memory->map[pc+1];
 			//printf("mem[%x] = %x\n",pointer,*memory->map[pointer]);
 			//printf("mem[%x] = %x\n",pointer+1,*memory->map[pointer+1]);
 			operand = (*memory->map[pointer+1] << 8) | *memory->map[pointer];
@@ -1479,12 +1644,16 @@ int CPU::fetchOpcode(std::string *str){
 			//printf("operand = %x\n", operand);
 		    //printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
-			if (DEBUG){
+			/*if (DEBUG){
 				cout << "Mode: indirectX\n";
 				printf("MEM[%x] = %x\n", operand, result);
 				printf("MEM[%x] = %x\n", operand, memory->read(operand));
-			}	
+			}	*/
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
+			#ifdef DEBUG
+			sprintf(buff1,"%02X %02X %s $%04X @ $%04X = #$%02X Absolute indirect", *memory->map[pc+1], 
+				*memory->map[pc+2], opcodeNameTable[opcode].c_str(), pointer, operand, result);
+			#endif
 			pc+=3;
 		}
 			break;
@@ -1498,6 +1667,11 @@ int CPU::fetchOpcode(std::string *str){
 			//pc+=1;
 
 	}
+	#ifdef DEBUG
+	debug_str.append(buff1);
+	printf("%s\n",debug_str.c_str());
+	#endif
+
 	if (str!=NULL){
 		if (operand >=0){
 			sprintf(buff2,"MA:%04X" " MD:%02X STAT:%02X\n",operand, memory->read(operand), memory->read(0x6000));

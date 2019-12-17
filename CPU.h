@@ -22,8 +22,6 @@ enum Pflags{
 	N     // Negative
 };
 
-
-
 class CPU{
 	public:
 		uint16 pc; // program counter
@@ -57,7 +55,7 @@ class CPU{
 		int fetchOpcode(std::string *str);
 
 		int cclock;
-
+		std::string debug_str;
 
 	//public:
 		CPU();
@@ -65,15 +63,17 @@ class CPU{
 		int emulateCycles(int cycles, std::string *str);
 
 		uint8 comp2Operation(uint8 n1, uint8 n2, char op='+', bool withcarry=false);
-		uint8 sum_operation(uint8 n1, uint8 n2, bool withcarry=false);
-		uint8 sub_operation(uint8 n1, uint8 n2, bool withcarry=false);
-		uint8 check_overflow (uint8 n1, uint8 n2);
+		uint8 sum_operation(uint8 n1, uint8 n2, uint8 carry=0);
+		uint8 sub_operation(uint8 n1, uint8 n2, uint8 carry=0);
+		uint8 check_overflow (uint8 n1, uint8 n2, uint8 res);
+		inline void updateSP(int increase);
 
 		void executeNMI();
 		static int opcodeCycles[256];
 		static int opcodePageCycles[256];
 		static int opcodeSize[256];
 		static int opcodeMode[256];
+		static std::string opcodeNameTable[256];
 
 		void compareElements(uint8 reg);
 		void store_value(int addr, uint8 value);

@@ -55,7 +55,7 @@ void Console::run(bool debug){
 	std::string log_str = "";
 	std::string *pstr  = &log_str;
 	std::ofstream outfile;
-	outfile.open("griness.log");
+	//outfile.open("griness.log");
 	log_str.clear();
 
 
@@ -94,7 +94,7 @@ void Console::run(bool debug){
 
 
 		}
-		outfile << log_str.c_str();
+		//outfile << log_str.c_str();
 		log_str.clear();
 
 		steps = 0;
