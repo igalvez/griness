@@ -1,7 +1,7 @@
 #include "CPU.h"
 #include "cpu_tests.h"
 #define PRG_OFFSET 0x8000
-#define DEBUG 
+//#define DEBUG 
 
 enum Modes{
 	accumulator,
@@ -1635,12 +1635,16 @@ int CPU::fetchOpcode(std::string *str){
 		case absoluteIndirect:
 			// Absolute Indirect
 		{
-			//cout << "Mode: absoluteIndirect\n";
+
 			uint16 pointer = (*memory->map[pc+2] << 8) | *memory->map[pc+1];
-			//printf("mem[%x] = %x\n",pointer,*memory->map[pointer]);
-			//printf("mem[%x] = %x\n",pointer+1,*memory->map[pointer+1]);
-			operand = (*memory->map[pointer+1] << 8) | *memory->map[pointer];
-			result = memory->read(operand);
+
+			/*This is to emulate a bug in which: "6502 has does not correctly fetch the target address if the indirect vector 
+			falls on a page boundary (e.g. $xxFF where xx is any value from $00 to $FF). In this case fetches the LSB from $xxFF
+			 as expected but takes the MSB from $xx00"*/
+			aux = (pointer+1)&0x00ff | (pointer)&0xff00;
+
+			operand = (*memory->map[aux] << 8) | *memory->map[pointer];
+			//result = memory->read(operand);
 			//printf("operand = %x\n", operand);
 		    //printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			jumpTable[opcode](this);
@@ -1651,8 +1655,8 @@ int CPU::fetchOpcode(std::string *str){
 			}	*/
 			//printf("MEM[%x] = %x\n", operand, memory->read(operand));
 			#ifdef DEBUG
-			sprintf(buff1,"%02X %02X %s $%04X @ $%04X = #$%02X Absolute indirect", *memory->map[pc+1], 
-				*memory->map[pc+2], opcodeNameTable[opcode].c_str(), pointer, operand, result);
+			sprintf(buff1,"%02X %02X %s ($%04X) = $%04X Absolute indirect", *memory->map[pc+1], 
+				*memory->map[pc+2], opcodeNameTable[opcode].c_str(), pointer, operand);
 			#endif
 			pc+=3;
 		}
