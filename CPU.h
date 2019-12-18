@@ -33,18 +33,7 @@ class CPU{
 		uint8 status[8];
 		char stat_chart[8];// = {'n','v','u','b','d','i','z','c'};
 		uint8 test_stat;
-
-
-		//flags
-		/*
-		uint8 N; Negative flag
-		uint8 Z; Zero flag
-		uint8 C; Carry flagO
-		uint8 I; Interrupt disable flag
-		uint8 B; Break flag
-		uint8 D; // not used
-		uint8 V; Overflow flag
-		*/
+		
 		Memory *memory;
 		uint16 opcode;
 		unsigned int addr_brk; // For debugging: create a breakpoint on specific address
@@ -62,7 +51,6 @@ class CPU{
 		void initialize(Memory *memP);
 		int emulateCycles(int cycles, std::string *str);
 
-		uint8 comp2Operation(uint8 n1, uint8 n2, char op='+', bool withcarry=false);
 		uint8 sum_operation(uint8 n1, uint8 n2, uint8 carry=0);
 		uint8 sub_operation(uint8 n1, uint8 n2, uint8 carry=0);
 		uint8 check_overflow (uint8 n1, uint8 n2, uint8 res);
@@ -84,7 +72,7 @@ class CPU{
 		int branch();
 
 
-		void push_status_to_Stack(bool isInt);
+		void push_status_to_Stack();
 		void pop_status_from_Stack();
 		void setSignalFlags(uint8 value);
 
